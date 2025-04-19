@@ -39,6 +39,7 @@
   <button onclick="selectCategory('健康')">健康</button>
   <button onclick="selectCategory('心靈')">心靈</button>
   <button onclick="selectCategory('人際')">人際</button>
+  <button onclick="selectCategory('其他')">其他</button>
 </div>
 
 <!-- 頁面二：輸入內容 -->
@@ -51,8 +52,6 @@
 
 <script>
   let selectedCategory = '';
-  let hasLoggedToday = false;
-  const todayKey = new Date().toISOString().split('T')[0];
 
   function getCurrentTimeFormatted() {
     const now = new Date();
@@ -64,10 +63,16 @@
     return `${hours}:${minutes}${ampm}`;
   }
 
+  function getTodayDateStr() {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  }
+
   function selectCategory(category) {
     selectedCategory = category;
     document.getElementById('selectedCategoryLabel').textContent = category;
     document.getElementById('currentTime').textContent = getCurrentTimeFormatted();
+
     document.getElementById('page1').classList.add('hidden');
     document.getElementById('page2').classList.remove('hidden');
   }
@@ -80,16 +85,8 @@
     }
 
     const time = getCurrentTimeFormatted();
-    const date = todayKey;
-    let entry = '';
-
-    // 檢查 localStorage 是否已有今日紀錄
-    if (!localStorage.getItem('logged_' + date)) {
-      entry += `${date}\n`;
-      localStorage.setItem('logged_' + date, 'true');
-    }
-
-    entry += `${time} ｜ ${selectedCategory} ｜ ${content}`;
+    const date = getTodayDateStr();
+    const entry = `${date}\n${time} ｜ ${selectedCategory} ｜ ${content}`;
     const encoded = encodeURIComponent(entry);
     const url = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
     window.location.href = url;
