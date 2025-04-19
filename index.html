@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>成功日記</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 1em;
+      background-color: #f9f9f9;
+      font-size: 300%; /* 文字放大 */
+      text-align: center;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    button {
+      margin: 0.5em;
+      padding: 0.3em 1em;
+      font-size: 100%;
+    }
+
+    input {
+      width: 90%;
+      padding: 0.5em;
+      font-size: 100%;
+      margin: 1em 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 頁面一：選擇類別 -->
+<div id="page1">
+  <h1>選擇類別</h1>
+  <button onclick="selectCategory('聆聽')">聆聽</button>
+  <button onclick="selectCategory('健康')">健康</button>
+  <button onclick="selectCategory('心靈')">心靈</button>
+  <button onclick="selectCategory('人際')">人際</button>
+</div>
+
+<!-- 頁面二：輸入內容 -->
+<div id="page2" class="hidden">
+  <h1 id="selectedCategoryLabel">類別</h1>
+  <p id="currentTime"></p>
+  <input type="text" id="content" placeholder="輸入內容..." />
+  <button onclick="saveToNotes()">儲存到 iPhone Notes</button>
+</div>
+
+<script>
+  let selectedCategory = '';
+
+  function getCurrentTimeFormatted() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${minutes}${ampm}`;
+  }
+
+  function getTodayDateStr() {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  }
+
+  function selectCategory(category) {
+    selectedCategory = category;
+    document.getElementById('selectedCategoryLabel').textContent = category;
+    document.getElementById('currentTime').textContent = getCurrentTimeFormatted();
+
+    // 切換頁面
+    document.getElementById('page1').classList.add('hidden');
+    document.getElementById('page2').classList.remove('hidden');
+  }
+
+  function saveToNotes() {
+    const content = document.getElementById('content').value;
+    if (!content) {
+      alert("請輸入內容！");
+      return;
+    }
+
+    const time = getCurrentTimeFormatted();
+    const date = getTodayDateStr();
+    const entry = `${date}\n${time} ｜ ${selectedCategory} ｜ ${content}`;
+    const encoded = encodeURIComponent(entry);
+    const url = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
+    window.location.href = url;
+  }
+</script>
+
+</body>
+</html>
