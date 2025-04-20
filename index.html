@@ -29,75 +29,7 @@
       margin: 1em 0;
     }
   </style>
-  <script>
-    let selectedCategory = '';
-    let statusForToday = "沒有該字"; // 預設為未記錄（會加日期）
-
-    function getCurrentTimeFormatted() {
-      const now = new Date();
-      let hours = now.getHours();
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      const ampm = hours >= 12 ? 'pm' : 'am';
-      hours = hours % 12;
-      hours = hours ? hours : 12;
-      return `${hours}:${minutes}${ampm}`;
-    }
-
-    function getTodayDateStr() {
-      const today = new Date();
-      return today.toISOString().split('T')[0];
-    }
-
-    function selectCategory(category) {
-      selectedCategory = category;
-      document.getElementById('selectedCategoryLabel').textContent = category;
-      document.getElementById('currentTime').textContent = getCurrentTimeFormatted();
-
-      document.getElementById('page1').classList.add('hidden');
-      document.getElementById('page2').classList.remove('hidden');
-    }
-
-    function saveToNotes() {
-      const content = document.getElementById('content').value;
-      if (!content) {
-        alert("請輸入內容！");
-        return;
-      }
-
-      const time = getCurrentTimeFormatted();
-      let entry = `${time} ｜ ${selectedCategory} ｜ ${content}`;
-
-      // 根據捷徑回傳結果決定是否加上今日日期
-      if (statusForToday === "沒有該字") {
-        const date = getTodayDateStr();
-        entry = `${date}\n` + entry;
-      }
-
-      const encoded = encodeURIComponent(entry);
-      const url = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
-      window.location.href = url;
-    }
-
-    function startScan() {
-      const callbackURL = encodeURIComponent(window.location.origin + window.location.pathname);
-      const shortcutURL = `shortcuts://x-callback-url/run-shortcut?name=ScanSuccessDaily1&x-success=${http://rvnkabev.github.io/Success-Daily/}`;
-      window.location.href = shortcutURL;
-    }
-
-    function readURLParams() {
-      const params = new URLSearchParams(window.location.search);
-      const result = params.get("result");
-      if (result) {
-        const decoded = decodeURIComponent(result);
-        statusForToday = decoded; // 「包含 ✓」 或 「沒有該字」
-        document.getElementById("output").textContent = decoded;
-      }
-    }
-
-    window.onload = readURLParams;
-  </script>
 </head>
-
 <body>
 
 <!-- 頁面一：選擇類別 -->
@@ -118,11 +50,48 @@
   <button onclick="saveToNotes()">儲存到 iPhone Notes</button>
 </div>
 
-<!-- 掃描筆記功能 -->
-<div style="margin-top: 2em;">
-  <h2 id="output">請點擊下方按鈕掃描今日是否已記錄</h2>
-  <button onclick="startScan()">掃描成功日記</button>
-</div>
+<script>
+  let selectedCategory = '';
+
+  function getCurrentTimeFormatted() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${minutes}${ampm}`;
+  }
+
+  function getTodayDateStr() {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  }
+
+  function selectCategory(category) {
+    selectedCategory = category;
+    document.getElementById('selectedCategoryLabel').textContent = category;
+    document.getElementById('currentTime').textContent = getCurrentTimeFormatted();
+
+    document.getElementById('page1').classList.add('hidden');
+    document.getElementById('page2').classList.remove('hidden');
+  }
+
+  function saveToNotes() {
+    const content = document.getElementById('content').value;
+    if (!content) {
+      alert("請輸入內容！");
+      return;
+    }
+
+    const time = getCurrentTimeFormatted();
+    const date = getTodayDateStr();
+    const entry = `${date}\n${time} ｜ ${selectedCategory} ｜ ${content}`;
+    const encoded = encodeURIComponent(entry);
+    const url = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
+    window.location.href = url;
+  }
+</script>
 
 </body>
 </html>
