@@ -1,276 +1,98 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <title>Slot Draw Game</title>
+  <meta charset="UTF-8">
+  <title>成功日記</title>
   <style>
-    html { font-size: 250%; }
     body {
-      background: #111;
-      color: white;
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
+      padding: 1em;
+      background-color: #f9f9f9;
+      font-size: 300%;
       text-align: center;
-      padding: 30px;
     }
 
-    .hidden { display: none; }
+    .hidden {
+      display: none;
+    }
 
     button {
-      font-size: 1rem;
-      padding: 0.5em 1em;
       margin: 0.5em;
-      background: #444;
-      color: white;
-      border: none;
-      border-radius: 0.3em;
-      cursor: pointer;
+      padding: 0.3em 1em;
+      font-size: 100%;
     }
 
-    button:hover {
-      background: gold;
-      color: black;
-    }
-
-    .menu p {
-      margin-top: 0.5em;
-      font-size: 0.8em;
-      color: #ccc;
-    }
-
-    .import-box {
-      position: fixed;
-      bottom: 5px;
-      right: 10px;
-      opacity: 0.3;
-      font-size: 0.4em;
-    }
-
-    .import-box input {
-      width: 2em;
-      font-size: 0.4em;
-    }
-
-    .reel {
-      width: 2.8em;
-      height: 2.8em;
-      font-size: 1.5em;
-      background: #222;
-      line-height: 2.8em;
-      border-radius: 0.3em;
-      border: 0.08em solid #666;
-      box-shadow: 0 0 0.3em #444;
-      text-align: center;
-    }
-
-    .reels {
-      display: flex;
-      justify-content: center;
-      gap: 0.4em;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      margin-top: 1em;
-    }
-
-    .lever {
-      width: 0.8em;
-      height: 3em;
-      background: linear-gradient(to bottom, silver, gray);
-      border-radius: 0.3em;
-      position: relative;
-      cursor: pointer;
-      transition: transform 0.3s ease;
-      margin-left: 1em;
-    }
-
-    .lever-ball {
-      position: absolute;
-      bottom: -0.9em;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 1.4em;
-      height: 1.4em;
-      background: red;
-      border-radius: 50%;
-      border: 0.15em solid #fff;
-    }
-
-    .lever.down { transform: rotate(30deg); }
-
-    .slot-flex {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 1em;
+    input {
+      width: 90%;
+      padding: 0.5em;
+      font-size: 100%;
+      margin: 1em 0;
     }
   </style>
 </head>
 <body>
 
-  <div id="menu" class="menu">
-    <h1>Slot Draw</h1>
-    <p>You have <strong id="homeTickets">0</strong> ticket(s)</p>
-    <button onclick="showSection('single')">Single Draw</button>
-    <button onclick="showFiveStage()">Five Draw</button>
-    <button onclick="showSection('redeem')">Redeem</button>
-  </div>
+<!-- 頁面一：選擇類別 -->
+<div id="page1">
+  <h1>選擇類別</h1>
+  <button onclick="selectCategory('聆聽')">聆聽</button>
+  <button onclick="selectCategory('健康')">健康</button>
+  <button onclick="selectCategory('心靈')">心靈</button>
+  <button onclick="selectCategory('人際')">人際</button>
+  <button onclick="selectCategory('其他')">其他</button>
+</div>
 
-  <div class="import-box">
-    Import: <input id="importInput" type="number" placeholder="0" />
-    <button onclick="addImportedTickets()">Add</button>
-  </div>
+<!-- 頁面二：輸入內容 -->
+<div id="page2" class="hidden">
+  <h1 id="selectedCategoryLabel">類別</h1>
+  <p id="currentTime"></p>
+  <input type="text" id="content" placeholder="輸入內容..." />
+  <button onclick="saveToNotes()">儲存到 iPhone Notes</button>
+</div>
 
-  <div id="single" class="hidden">
-    <h2>Single Draw</h2>
-    <div class="slot-flex">
-      <div class="reel" id="singleReel">💎</div>
-      <div class="lever" id="lever" onclick="pullSingle()">
-        <div class="lever-ball"></div>
-      </div>
-    </div>
-    <div id="singleResult" style="margin-top:0.5em;"></div>
-    <button onclick="showSection('menu')">Back</button>
-  </div>
+<script>
+  let selectedCategory = '';
 
-  <div id="fiveStage" class="hidden">
-    <h2>Five Draw</h2>
-    <div class="reels">
-      <div class="reel" id="fs0">💎</div>
-      <div class="reel" id="fs1">💎</div>
-      <div class="reel" id="fs2">💎</div>
-      <div class="reel" id="fs3">💎</div>
-      <div class="reel" id="fs4">💎</div>
-    </div>
-    <div id="fiveStageResult" style="margin-top:1em;"></div>
-    <button onclick="returnToMenu()">Back</button>
-  </div>
+  function getCurrentTimeFormatted() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${minutes}${ampm}`;
+  }
 
-  <div id="redeem" class="hidden">
-    <h2>Redeem</h2>
-    <p>You have <strong id="ticketCount">0</strong> ticket(s)</p>
-    <button onclick="redeem(1)">Small (-1)</button>
-    <button onclick="redeem(20)">Medium (-20)</button>
-    <button onclick="redeem(100)">Big (-100)</button>
-    <button onclick="customRedeem()">Custom</button>
-    <div id="redeemResult"></div>
-    <button onclick="showSection('menu')">Back</button>
-  </div>
+  function getTodayDateStr() {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  }
 
-  <script>
-    let tickets = parseInt(localStorage.getItem("tickets") || "0");
-    const symbols = ["🍋", "🍒", "🍇", "🍉", "🔔", "⭐", "💎"];
-    const symbolToTickets = {
-      "🍋": 0,
-      "🍒": 1,
-      "🍇": 1,
-      "🍉": 2,
-      "🔔": 2,
-      "⭐": 3,
-      "💎": 3
-    };
+  function selectCategory(category) {
+    selectedCategory = category;
+    document.getElementById('selectedCategoryLabel').textContent = category;
+    document.getElementById('currentTime').textContent = getCurrentTimeFormatted();
 
-    function updateAllDisplays() {
-      document.getElementById("homeTickets").innerText = tickets;
-      document.getElementById("ticketCount").innerText = tickets;
+    document.getElementById('page1').classList.add('hidden');
+    document.getElementById('page2').classList.remove('hidden');
+  }
+
+  function saveToNotes() {
+    const content = document.getElementById('content').value;
+    if (!content) {
+      alert("請輸入內容！");
+      return;
     }
 
-    function showSection(id) {
-      ["menu", "single", "fiveStage", "redeem"].forEach(sec => {
-        document.getElementById(sec).classList.add("hidden");
-      });
-      document.getElementById(id).classList.remove("hidden");
-      updateAllDisplays();
-    }
+    const time = getCurrentTimeFormatted();
+    const date = getTodayDateStr();
+    const entry = `${date}\n${time} ｜ ${selectedCategory} ｜ ${content}`;
+    const encoded = encodeURIComponent(entry);
+    const url = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
+    window.location.href = url;
+  }
+</script>
 
-    function addImportedTickets() {
-      const val = parseInt(document.getElementById("importInput").value);
-      if (!isNaN(val) && val > 0) {
-        tickets += val;
-        localStorage.setItem("tickets", tickets);
-        updateAllDisplays();
-        document.getElementById("importInput").value = "";
-      }
-    }
-
-    function pullSingle() {
-      const reel = document.getElementById("singleReel");
-      const lever = document.getElementById("lever");
-      const result = document.getElementById("singleResult");
-      result.innerHTML = "";
-      lever.classList.add("down");
-      setTimeout(() => lever.classList.remove("down"), 300);
-      let count = 0;
-      const interval = setInterval(() => {
-        reel.innerText = symbols[Math.floor(Math.random() * symbols.length)];
-        count++;
-        if (count >= 20) {
-          clearInterval(interval);
-          const finalSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-          reel.innerText = finalSymbol;
-          const gain = symbolToTickets[finalSymbol];
-          tickets += gain;
-          localStorage.setItem("tickets", tickets);
-          result.innerHTML = `You got <strong>${gain}</strong> ticket(s) with ${finalSymbol}`;
-          updateAllDisplays();
-        }
-      }, 100);
-    }
-
-    function showFiveStage() {
-      showSection("fiveStage");
-      const reels = [0, 1, 2, 3, 4].map(i => document.getElementById("fs" + i));
-      const resultBox = document.getElementById("fiveStageResult");
-      resultBox.innerHTML = "Starting draw...";
-      let total = 0;
-
-      function spinOne(index) {
-        if (index >= 5) {
-          localStorage.setItem("tickets", tickets);
-          resultBox.innerHTML += `<br><strong>Total: ${total} ticket(s)!</strong>`;
-          updateAllDisplays();
-          return;
-        }
-        let count = 0;
-        const spin = setInterval(() => {
-          reels[index].innerText = symbols[Math.floor(Math.random() * symbols.length)];
-          count++;
-          if (count >= 20) {
-            clearInterval(spin);
-            const final = symbols[Math.floor(Math.random() * symbols.length)];
-            reels[index].innerText = final;
-            const gain = symbolToTickets[final];
-            tickets += gain;
-            total += gain;
-            resultBox.innerHTML += `<br>Draw ${index + 1}: ${final} → +${gain} ticket(s)`;
-            setTimeout(() => spinOne(index + 1), 500);
-          }
-        }, 50);
-      }
-
-      spinOne(0);
-    }
-
-    function returnToMenu() {
-      showSection("menu");
-    }
-
-    function redeem(amount) {
-      const msg = document.getElementById("redeemResult");
-      if (tickets >= amount) {
-        tickets -= amount;
-        localStorage.setItem("tickets", tickets);
-        msg.innerHTML = `Redeemed ${amount} ticket(s)!`;
-      } else {
-        msg.innerHTML = `Not enough tickets.`;
-      }
-      updateAllDisplays();
-    }
-
-    function customRedeem() {
-      let v = parseInt(prompt("How many tickets to redeem?"));
-      if (!isNaN(v) && v > 0) redeem(v);
-    }
-
-    updateAllDisplays();
-  </script>
 </body>
 </html>
