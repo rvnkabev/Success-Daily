@@ -92,8 +92,12 @@
     return `${hours}:${minutes}${ampm}`;
   }
 
+  // ✅ 使用本地時區產出正確日期
   function getTodayDateStr() {
-    return new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const offsetMs = now.getTimezoneOffset() * 60000;
+    const localTime = new Date(now.getTime() - offsetMs);
+    return localTime.toISOString().split('T')[0];
   }
 
   function hideAllPages() {
