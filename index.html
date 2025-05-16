@@ -1,38 +1,38 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>成功日記</title>
+  <title>Success Diary</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 1em;
-      background-color: #f9f9f9;
-      font-size: 280%;
-      text-align: center;
+    body{
+      font-family:Arial,sans-serif;
+      padding:1em;
+      background:#f9f9f9;
+      font-size:280%;
+      text-align:center;
     }
-    .page { display: none; }
-    .active { display: block; }
-    button {
-      margin: 0.4em;
-      padding: 0.3em 1em;
-      font-size: 90%;
+    .page{display:none;}
+    .active{display:block;}
+    button{
+      margin:0.4em;
+      padding:0.3em 1em;
+      font-size:90%;
     }
-    input, textarea {
-      width: 90%;
-      padding: 0.5em;
-      font-size: 90%;
-      margin: 1em 0;
+    input,textarea{
+      width:90%;
+      padding:0.5em;
+      font-size:90%;
+      margin:1em 0;
     }
   </style>
 </head>
 <body>
 
-<!-- 第一頁：主類別 -->
+<!-- 1-Main categories -->
 <div class="page active" id="page1">
-  <h2>今日記錄主類別</h2>
+  <h2>Select Main Category</h2>
   <button onclick="selectCategory('Health')">Health</button>
-  <button onclick="selectCategory('MentalHealth')">MentalHealth</button>
+  <button onclick="selectCategory('MentalHealth')">Mental&nbsp;Health</button>
   <button onclick="selectCategory('Relationship')">Relationship</button>
   <button onclick="selectCategory('Listen')">Listen</button>
   <button onclick="selectCategory('Finance')">Finance</button>
@@ -42,187 +42,181 @@
   <button onclick="selectCategory('Other')">Other</button>
 </div>
 
-<!-- 第二頁：次項目 -->
+<!-- 2-Sub-categories -->
 <div class="page" id="pageSub">
-  <h2 id="subCategoryTitle">選擇次項目</h2>
+  <h2 id="subCategoryTitle"></h2>
   <div id="subButtons"></div>
 </div>
 
-<!-- 第三頁：單項輸入 -->
+<!-- 3-Free-text input (skipped for Pomodoro auto log) -->
 <div class="page" id="pageInput">
-  <h2 id="selectedCategoryLabel">類別</h2>
+  <h2 id="selectedCategoryLabel"></h2>
   <p id="currentTime"></p>
-  <input type="text" id="content" placeholder="輸入內容..." />
-  <button onclick="saveToNotes()">儲存</button>
+  <input type="text" id="content" placeholder="Describe here…" />
+  <button onclick="saveToNotes()">Save</button>
 </div>
 
-<!-- 反省流程頁（保留原有功能） -->
+<!-- 4-Reflect flow (unchanged logic, English text) -->
 <div class="page" id="reflect1">
-  <h2>1. 為未來做咗咩？（運動、學習、人際、金融）</h2>
+  <h2>1. What did I do for the future? (exercise, learning, relationships, finance)</h2>
   <textarea id="answer1"></textarea>
-  <button onclick="nextPage(1)">下一題</button>
+  <button onclick="nextPage(1)">Next</button>
 </div>
-
 <div class="page" id="reflect2">
-  <h2>2. 有冇情緒困擾？點處理？</h2>
+  <h2>2. Any emotional distress? How did I handle it?</h2>
   <textarea id="answer2"></textarea>
-  <button onclick="nextPage(2)">下一題</button>
+  <button onclick="nextPage(2)">Next</button>
 </div>
-
 <div class="page" id="reflect3">
-  <h2>3. 有冇讚賞自己／講支持自己說話？</h2>
+  <h2>3. Did I praise or support myself?</h2>
   <textarea id="answer3"></textarea>
-  <button onclick="nextPage(3)">下一題</button>
+  <button onclick="nextPage(3)">Next</button>
 </div>
-
 <div class="page" id="reflect4">
-  <h2>4. 有冇認真聽人講？唔係只想證明自己？</h2>
+  <h2>4. Did I really listen to others instead of proving myself?</h2>
   <textarea id="answer4"></textarea>
-  <button onclick="nextPage(4)">下一題</button>
+  <button onclick="nextPage(4)">Next</button>
 </div>
-
 <div class="page" id="reflect5">
-  <h2>5. 今日對老婆做咗咩令佢開心？</h2>
+  <h2>5. What did I do for my wife that made her happy today?</h2>
   <textarea id="answer5"></textarea>
-  <button onclick="submitReflection()">儲存</button>
+  <button onclick="submitReflection()">Save</button>
 </div>
 
 <script>
-  const categoryMap = {
-    "Health": ["Swim", "Gym"],
-    "MentalHealth": ["DelayGratification", "SelfControl"],
-    "Relationship": ["HappyWifeHappyLife", "Friendship"],
-    "Listen": ["NoInterrupt", "Understand", "Empathy"],
-    "Finance": [],
-    "Work": ["A12", "MEWP", "Communication"],
-    "Pomodoro": ["English", "Finance", "Reading", "Review"],
-    "Reflect": [],
-    "Other": []
-  };
+/* ----------- Category map ----------- */
+const categoryMap={
+  Health:["Swim","Gym","Other"],
+  MentalHealth:["DelayGratification","SelfControl","Other"],
+  Relationship:["HappyWifeHappyLife","Friendship","Other"],
+  Listen:["NoInterrupt","Understand","Empathy","Other"],
+  Finance:[], /* no sub-page */
+  Work:["A12","MEWP","Communication","Other"],
+  Pomodoro:["English","Finance","Reading","Review"],
+  Reflect:[], /* triggers reflect flow */
+  Other:[]
+};
 
-  let selectedCategory = '';
-  let selectedSubCategory = '';
+let selectedCategory='';
+let selectedSubCategory='';
 
-  /* ---------- 時間與日期 ---------- */
-  function getCurrentTimeFormatted() {
-    const now = new Date();
-    let hours = now.getHours();
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'pm' : 'am';
-    hours = hours % 12 || 12;
-    return `${hours}:${minutes}${ampm}`;
+/* ----------- Time helpers ----------- */
+const fmtTime=()=>{
+  const d=new Date();
+  let h=d.getHours(),m=d.getMinutes().toString().padStart(2,'0');
+  const am=h>=12?'pm':'am';
+  h=h%12||12;
+  return `${h}:${m}${am}`;
+};
+const fmtDate=()=>{
+  const now=new Date();
+  return new Date(now.getTime()-now.getTimezoneOffset()*60000)
+         .toISOString().split('T')[0];
+};
+
+/* ----------- Navigation helpers ----------- */
+const hidePages=()=>document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+
+function selectCategory(cat){
+  if(cat==='Reflect'){startReflection();return;}
+  selectedCategory=cat;
+  selectedSubCategory='';
+  const subs=categoryMap[cat]||[];
+  if(subs.length>0&&cat!=='Pomodoro'){
+    buildSubButtons(subs);
+    hidePages();document.getElementById('pageSub').classList.add('active');
+  }else if(cat==='Pomodoro'){
+    buildSubButtons(subs); /* still choose sub */
+    hidePages();document.getElementById('pageSub').classList.add('active');
+  }else{
+    gotoInput();
   }
-  function getTodayDateStr() {
-    const now = new Date();
-    const offsetMs = now.getTimezoneOffset() * 60000;
-    const localTime = new Date(now.getTime() - offsetMs);
-    return localTime.toISOString().split('T')[0];
+}
+
+function buildSubButtons(arr){
+  const wrap=document.getElementById('subButtons');
+  wrap.innerHTML='';
+  document.getElementById('subCategoryTitle').textContent=`${selectedCategory} – choose sub-category`;
+  arr.forEach(s=>{
+    const b=document.createElement('button');
+    b.textContent=s;
+    b.onclick=()=>selectSubCategory(s);
+    wrap.appendChild(b);
+  });
+}
+
+function selectSubCategory(sub){
+  selectedSubCategory=sub;
+  /* Pomodoro auto-log 25mins without free text */
+  if(selectedCategory==='Pomodoro'){
+    logPomodoro();
+  }else{
+    gotoInput();
   }
+}
 
-  /* ---------- 畫面切換 ---------- */
-  function hideAllPages() {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+function gotoInput(){
+  hidePages();
+  const label=selectedSubCategory?`${selectedCategory}/${selectedSubCategory}`:selectedCategory;
+  document.getElementById('selectedCategoryLabel').textContent=label;
+  document.getElementById('currentTime').textContent=fmtTime();
+  document.getElementById('content').value='';
+  document.getElementById('pageInput').classList.add('active');
+}
+
+function startReflection(){hidePages();document.getElementById('reflect1').classList.add('active');}
+function nextPage(i){
+  document.getElementById('reflect'+i).classList.remove('active');
+  document.getElementById('reflect'+(i+1)).classList.add('active');
+}
+
+/* ----------- Save helpers ----------- */
+function buildEntry(text){
+  const date=fmtDate(),time=fmtTime();
+  const tags=`#${selectedCategory}`+(selectedSubCategory?` #${selectedSubCategory}`:'');
+  const title=selectedSubCategory?`${selectedCategory}/${selectedSubCategory}`:selectedCategory;
+  return `${date}\n${time} ｜ ${title} ｜ ${text} ${tags}`;
+}
+function sendToShortcuts(encoded,isFin){
+  if(isFin){
+    const u1=`shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
+    const u2=`shortcuts://run-shortcut?name=SaveToInvestment&input=text&text=${encoded}`;
+    window.open(u1);setTimeout(()=>window.location.href=u2,500);
+  }else{
+    window.location.href=`shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
   }
+}
 
-  function selectCategory(category) {
-    if (category === 'Reflect') {
-      startReflection();
-      return;
-    }
-    selectedCategory = category;
-    selectedSubCategory = '';
-    const subs = categoryMap[category] || [];
+/* Free-text categories */
+function saveToNotes(){
+  const txt=document.getElementById('content').value.trim();
+  if(!txt){alert("Please enter something!");return;}
+  const note=buildEntry(txt);
+  sendToShortcuts(encodeURIComponent(note),selectedCategory==='Finance');
+}
 
-    if (subs.length > 0) {
-      buildSubButtons(subs);
-      hideAllPages();
-      document.getElementById('pageSub').classList.add('active');
-    } else {
-      goToInputPage();
-    }
-  }
+/* Pomodoro auto-log */
+function logPomodoro(){
+  const note=buildEntry('25mins');
+  sendToShortcuts(encodeURIComponent(note),false);
+  /* Return to main page */
+  hidePages();document.getElementById('page1').classList.add('active');
+}
 
-  function buildSubButtons(subs) {
-    const wrapper = document.getElementById('subButtons');
-    wrapper.innerHTML = '';
-    document.getElementById('subCategoryTitle').textContent = `${selectedCategory} 次項目`;
-    subs.forEach(sub => {
-      const btn = document.createElement('button');
-      btn.textContent = sub;
-      btn.onclick = () => selectSubCategory(sub);
-      wrapper.appendChild(btn);
-    });
-  }
-
-  function selectSubCategory(sub) {
-    selectedSubCategory = sub;
-    goToInputPage();
-  }
-
-  function goToInputPage() {
-    hideAllPages();
-    const label = selectedSubCategory
-      ? `${selectedCategory} / ${selectedSubCategory}`
-      : selectedCategory;
-    document.getElementById('selectedCategoryLabel').textContent = label;
-    document.getElementById('currentTime').textContent = getCurrentTimeFormatted();
-    document.getElementById('content').value = '';
-    document.getElementById('pageInput').classList.add('active');
-  }
-
-  function startReflection() {
-    hideAllPages();
-    document.getElementById('reflect1').classList.add('active');
-  }
-
-  function nextPage(current) {
-    document.getElementById('reflect' + current).classList.remove('active');
-    document.getElementById('reflect' + (current + 1)).classList.add('active');
-  }
-
-  /* ---------- 儲存 ---------- */
-  function saveToNotes() {
-    const content = document.getElementById('content').value.trim();
-    if (!content) { alert("請輸入內容！"); return; }
-
-    const date = getTodayDateStr();
-    const time = getCurrentTimeFormatted();
-    const tags = `#${selectedCategory}` + (selectedSubCategory ? ` #${selectedSubCategory}` : '');
-    const title = selectedSubCategory
-      ? `${selectedCategory}/${selectedSubCategory}`
-      : selectedCategory;
-    const entry = `${date}\n${time} ｜ ${title} ｜ ${content} ${tags}`;
-    const encoded = encodeURIComponent(entry);
-
-    if (selectedCategory === 'Finance') {
-      const url1 = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
-      const url2 = `shortcuts://run-shortcut?name=SaveToInvestment&input=text&text=${encoded}`;
-      window.open(url1);
-      setTimeout(() => window.location.href = url2, 500);
-    } else {
-      window.location.href = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
-    }
-  }
-
-  function submitReflection() {
-    const answers = [
-      document.getElementById('answer1').value.trim(),
-      document.getElementById('answer2').value.trim(),
-      document.getElementById('answer3').value.trim(),
-      document.getElementById('answer4').value.trim(),
-      document.getElementById('answer5').value.trim()
-    ];
-    const note = `
-成功日記：
-1. 為未來：${answers[0]}
-2. 情緒處理：${answers[1]}
-3. 自我支持與自讚：${answers[2]}
-4. 認真聆聽：${answers[3]}
-5. 對老婆的愛：${answers[4]}
-    `.trim();
-    const encoded = encodeURIComponent(note);
-    window.location.href = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
-  }
+/* Reflect save */
+function submitReflection(){
+  const ans=[1,2,3,4,5].map(i=>document.getElementById('answer'+i).value.trim());
+  const note=`
+Success Diary:
+1. Future-oriented actions: ${ans[0]}
+2. Emotion handling: ${ans[1]}
+3. Self-praise / support: ${ans[2]}
+4. Active listening: ${ans[3]}
+5. Love for wife: ${ans[4]}
+  `.trim();
+  window.location.href=
+    `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encodeURIComponent(note)}`;
+}
 </script>
 
 </body>
