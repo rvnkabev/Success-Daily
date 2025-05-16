@@ -1,4 +1,46 @@
-<!-- …(head, styles, main page remain unchanged)… -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Success Diary</title>
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      padding: 1em;
+      background: #f9f9f9;
+      font-size: 280%;
+      text-align: center;
+    }
+    .page{display:none;}
+    .active{display:block;}
+    button{
+      margin: 0.4em;
+      padding: 0.3em 1em;
+      font-size: 90%;
+    }
+    input,textarea{
+      width: 90%;
+      padding: 0.5em;
+      font-size: 90%;
+      margin: 1em 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 1-Main categories -->
+<div class="page active" id="page1">
+  <h2>Select Main Category</h2>
+  <button onclick="selectCategory('Health')">Health</button>
+  <button onclick="selectCategory('MentalHealth')">Mental&nbsp;Health</button>
+  <button onclick="selectCategory('Relationship')">Relationship</button>
+  <button onclick="selectCategory('Listen')">Listen</button>
+  <button onclick="selectCategory('Finance')">Finance</button>
+  <button onclick="selectCategory('Work')">Work</button>
+  <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
+  <button onclick="selectCategory('Reflect')">Reflect</button>
+  <button onclick="selectCategory('Other')">Other</button>
+</div>
 
 <!-- 2-Sub-categories -->
 <div class="page" id="pageSub">
@@ -6,26 +48,59 @@
   <div id="subButtons"></div>
 </div>
 
-<!-- …(other pages remain unchanged)… -->
+<!-- 3-Free-text input -->
+<div class="page" id="pageInput">
+  <h2 id="selectedCategoryLabel"></h2>
+  <p id="currentTime"></p>
+  <input type="text" id="content" placeholder="Describe here…" />
+  <button onclick="saveToNotes()">Save</button>
+</div>
+
+<!-- 4-Reflect flow -->
+<div class="page" id="reflect1">
+  <h2>1. What did I do for the future? (exercise, learning, relationships, finance)</h2>
+  <textarea id="answer1"></textarea>
+  <button onclick="nextPage(1)">Next</button>
+</div>
+<div class="page" id="reflect2">
+  <h2>2. Any emotional distress? How did I handle it?</h2>
+  <textarea id="answer2"></textarea>
+  <button onclick="nextPage(2)">Next</button>
+</div>
+<div class="page" id="reflect3">
+  <h2>3. Did I praise or support myself?</h2>
+  <textarea id="answer3"></textarea>
+  <button onclick="nextPage(3)">Next</button>
+</div>
+<div class="page" id="reflect4">
+  <h2>4. Did I really listen to others instead of proving myself?</h2>
+  <textarea id="answer4"></textarea>
+  <button onclick="nextPage(4)">Next</button>
+</div>
+<div class="page" id="reflect5">
+  <h2>5. What did I do for my wife that made her happy today?</h2>
+  <textarea id="answer5"></textarea>
+  <button onclick="submitReflection()">Save</button>
+</div>
 
 <script>
-/* ---------- Categories ---------- */
+/* ----------- Category map ----------- */
 const categoryMap={
   Health:["Swim","Gym","Other"],
   MentalHealth:["DelayGratification","SelfControl","Other"],
   Relationship:["HappyWifeHappyLife","Friendship","Other"],
   Listen:["NoInterrupt","Understand","Empathy","Other"],
-  Finance:[],
+  Finance:[],                 /* no sub-page */
   Work:["A12","MEWP","Communication","Other"],
   Pomodoro:["English","Finance","Reading","Review"],
-  Reflect:[],
+  Reflect:[],                 /* triggers reflect flow */
   Other:[]
 };
 
 let selectedCategory='';
 let selectedSubCategory='';
 
-/* ---------- Helpers ---------- */
+/* ----------- Time helpers ----------- */
 const fmtTime=()=>{
   const d=new Date();
   let h=d.getHours(),m=d.getMinutes().toString().padStart(2,'0');
@@ -38,82 +113,118 @@ const fmtDate=()=>{
   return new Date(now.getTime()-now.getTimezoneOffset()*60000)
          .toISOString().split('T')[0];
 };
+
+/* ----------- Navigation helpers ----------- */
 const hidePages=()=>document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
 
-/* ---------- Navigation ---------- */
 function selectCategory(cat){
   if(cat==='Reflect'){startReflection();return;}
-  selectedCategory=cat;selectedSubCategory='';
+  selectedCategory=cat;
+  selectedSubCategory='';
   const subs=categoryMap[cat]||[];
-  if(subs.length>0&&cat!=='Pomodoro'){
-    buildSubButtons(subs);hidePages();document.getElementById('pageSub').classList.add('active');
+  if(subs.length>0 && cat!=='Pomodoro'){
+    buildSubButtons(subs);
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
   }else if(cat==='Pomodoro'){
-    buildSubButtons(subs);hidePages();document.getElementById('pageSub').classList.add('active');
-  }else{gotoInput();}
+    buildSubButtons(subs);           /* still choose sub */
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
+  }else{
+    gotoInput();
+  }
 }
 
 function buildSubButtons(arr){
-  const wrap=document.getElementById('subButtons');wrap.innerHTML='';
-  document.getElementById('subCategoryTitle').textContent=selectedCategory;   /* ← brackets removed */
+  const wrap=document.getElementById('subButtons');
+  wrap.innerHTML='';
+  /* 只顯示主類別名稱，不附加任何其他文字 */
+  document.getElementById('subCategoryTitle').textContent=selectedCategory;
   arr.forEach(s=>{
-    const b=document.createElement('button');b.textContent=s;
-    b.onclick=()=>selectSubCategory(s);wrap.appendChild(b);
+    const b=document.createElement('button');
+    b.textContent=s;
+    b.onclick=()=>selectSubCategory(s);
+    wrap.appendChild(b);
   });
 }
 
 function selectSubCategory(sub){
   selectedSubCategory=sub;
-  if(selectedCategory==='Pomodoro'){logPomodoro();}
-  else{gotoInput();}
+  /* Pomodoro auto-log 25 mins without free text */
+  if(selectedCategory==='Pomodoro'){
+    logPomodoro();
+  }else{
+    gotoInput();
+  }
 }
 
-/* ---------- Input page ---------- */
 function gotoInput(){
   hidePages();
-  document.getElementById('selectedCategoryLabel').textContent=`[${selectedCategory}]`;
+  const label=selectedSubCategory
+             ?`${selectedCategory}/${selectedSubCategory}`
+             : selectedCategory;
+  document.getElementById('selectedCategoryLabel').textContent=label;
   document.getElementById('currentTime').textContent=fmtTime();
   document.getElementById('content').value='';
   document.getElementById('pageInput').classList.add('active');
 }
 
-/* ---------- Reflect flow ---------- */
-function startReflection(){hidePages();document.getElementById('reflect1').classList.add('active');}
-function nextPage(i){document.getElementById('reflect'+i).classList.remove('active');
-  document.getElementById('reflect'+(i+1)).classList.add('active');}
+function startReflection(){
+  hidePages();
+  document.getElementById('reflect1').classList.add('active');
+}
+function nextPage(i){
+  document.getElementById('reflect'+i).classList.remove('active');
+  document.getElementById('reflect'+(i+1)).classList.add('active');
+}
 
-/* ---------- Save ---------- */
+/* ----------- Save helpers ----------- */
 function buildEntry(text){
   const date=fmtDate(),time=fmtTime();
   const tags=`#${selectedCategory}`+(selectedSubCategory?` #${selectedSubCategory}`:'');
-  return `${date}\n${time} ｜ ${selectedCategory}｜ ${text} ${tags}`;
+  const title=selectedSubCategory
+             ?`${selectedCategory}/${selectedSubCategory}`
+             : selectedCategory;
+  return `${date}\n${time} ｜ ${title} ｜ ${text} ${tags}`;
 }
-function send(encoded,isFin){
+function sendToShortcuts(encoded,isFin){
   if(isFin){
     const u1=`shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
     const u2=`shortcuts://run-shortcut?name=SaveToInvestment&input=text&text=${encoded}`;
-    window.open(u1);setTimeout(()=>window.location.href=u2,500);
+    window.open(u1);
+    setTimeout(()=>window.location.href=u2,500);
   }else{
-    window.location.href=`shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
+    window.location.href=
+      `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
   }
 }
+
+/* Free-text categories */
 function saveToNotes(){
   const txt=document.getElementById('content').value.trim();
   if(!txt){alert("Please enter something!");return;}
-  send(encodeURIComponent(buildEntry(txt)),selectedCategory==='Finance');
-}
-function logPomodoro(){
-  send(encodeURIComponent(buildEntry('25mins')),false);
-  hidePages();document.getElementById('page1').classList.add('active');
+  const note=buildEntry(txt);
+  sendToShortcuts(encodeURIComponent(note),selectedCategory==='Finance');
 }
 
-/* ---------- Reflect save ---------- */
+/* Pomodoro auto-log */
+function logPomodoro(){
+  const note=buildEntry('25mins');
+  sendToShortcuts(encodeURIComponent(note),false);
+  /* Return to main page */
+  hidePages();
+  document.getElementById('page1').classList.add('active');
+}
+
+/* Reflect save */
 function submitReflection(){
-  const ans=[1,2,3,4,5].map(i=>document.getElementById('answer'+i).value.trim());
+  const ans=[1,2,3,4,5]
+    .map(i=>document.getElementById('answer'+i).value.trim());
   const note=`
 Success Diary:
-1. Future actions: ${ans[0]}
+1. Future-oriented actions: ${ans[0]}
 2. Emotion handling: ${ans[1]}
-3. Self-support: ${ans[2]}
+3. Self-praise / support: ${ans[2]}
 4. Active listening: ${ans[3]}
 5. Love for wife: ${ans[4]}
   `.trim();
@@ -121,3 +232,6 @@ Success Diary:
     `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encodeURIComponent(note)}`;
 }
 </script>
+
+</body>
+</html>
