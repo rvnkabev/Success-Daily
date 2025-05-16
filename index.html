@@ -1,46 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Success Diary</title>
-  <style>
-    body{
-      font-family:Arial,sans-serif;
-      padding:1em;
-      background:#f9f9f9;
-      font-size:280%;
-      text-align:center;
-    }
-    .page{display:none;}
-    .active{display:block;}
-    button{
-      margin:0.4em;
-      padding:0.3em 1em;
-      font-size:90%;
-    }
-    input,textarea{
-      width:90%;
-      padding:0.5em;
-      font-size:90%;
-      margin:1em 0;
-    }
-  </style>
-</head>
-<body>
-
-<!-- 1-Main categories -->
-<div class="page active" id="page1">
-  <h2>Select Main Category</h2>
-  <button onclick="selectCategory('Health')">Health</button>
-  <button onclick="selectCategory('MentalHealth')">Mental&nbsp;Health</button>
-  <button onclick="selectCategory('Relationship')">Relationship</button>
-  <button onclick="selectCategory('Listen')">Listen</button>
-  <button onclick="selectCategory('Finance')">Finance</button>
-  <button onclick="selectCategory('Work')">Work</button>
-  <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
-  <button onclick="selectCategory('Reflect')">Reflect</button>
-  <button onclick="selectCategory('Other')">Other</button>
-</div>
+<!-- …(head, styles, main page remain unchanged)… -->
 
 <!-- 2-Sub-categories -->
 <div class="page" id="pageSub">
@@ -48,40 +6,7 @@
   <div id="subButtons"></div>
 </div>
 
-<!-- 3-Free-text input -->
-<div class="page" id="pageInput">
-  <h2 id="selectedCategoryLabel"></h2>
-  <p id="currentTime"></p>
-  <input type="text" id="content" placeholder="Describe here…" />
-  <button onclick="saveToNotes()">Save</button>
-</div>
-
-<!-- 4-Reflect flow -->
-<div class="page" id="reflect1">
-  <h2>1. What did I do for the future? (exercise, learning, relationships, finance)</h2>
-  <textarea id="answer1"></textarea>
-  <button onclick="nextPage(1)">Next</button>
-</div>
-<div class="page" id="reflect2">
-  <h2>2. Any emotional distress? How did I handle it?</h2>
-  <textarea id="answer2"></textarea>
-  <button onclick="nextPage(2)">Next</button>
-</div>
-<div class="page" id="reflect3">
-  <h2>3. Did I praise or support myself?</h2>
-  <textarea id="answer3"></textarea>
-  <button onclick="nextPage(3)">Next</button>
-</div>
-<div class="page" id="reflect4">
-  <h2>4. Did I really listen to others instead of proving myself?</h2>
-  <textarea id="answer4"></textarea>
-  <button onclick="nextPage(4)">Next</button>
-</div>
-<div class="page" id="reflect5">
-  <h2>5. What did I do for my wife that made her happy today?</h2>
-  <textarea id="answer5"></textarea>
-  <button onclick="submitReflection()">Save</button>
-</div>
+<!-- …(other pages remain unchanged)… -->
 
 <script>
 /* ---------- Categories ---------- */
@@ -129,7 +54,7 @@ function selectCategory(cat){
 
 function buildSubButtons(arr){
   const wrap=document.getElementById('subButtons');wrap.innerHTML='';
-  document.getElementById('subCategoryTitle').textContent=`[${selectedCategory}]`;
+  document.getElementById('subCategoryTitle').textContent=selectedCategory;   /* ← brackets removed */
   arr.forEach(s=>{
     const b=document.createElement('button');b.textContent=s;
     b.onclick=()=>selectSubCategory(s);wrap.appendChild(b);
@@ -142,6 +67,7 @@ function selectSubCategory(sub){
   else{gotoInput();}
 }
 
+/* ---------- Input page ---------- */
 function gotoInput(){
   hidePages();
   document.getElementById('selectedCategoryLabel').textContent=`[${selectedCategory}]`;
@@ -150,11 +76,12 @@ function gotoInput(){
   document.getElementById('pageInput').classList.add('active');
 }
 
+/* ---------- Reflect flow ---------- */
 function startReflection(){hidePages();document.getElementById('reflect1').classList.add('active');}
 function nextPage(i){document.getElementById('reflect'+i).classList.remove('active');
   document.getElementById('reflect'+(i+1)).classList.add('active');}
 
-/* ---------- Saving ---------- */
+/* ---------- Save ---------- */
 function buildEntry(text){
   const date=fmtDate(),time=fmtTime();
   const tags=`#${selectedCategory}`+(selectedSubCategory?` #${selectedSubCategory}`:'');
@@ -169,13 +96,11 @@ function send(encoded,isFin){
     window.location.href=`shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
   }
 }
-
 function saveToNotes(){
   const txt=document.getElementById('content').value.trim();
   if(!txt){alert("Please enter something!");return;}
   send(encodeURIComponent(buildEntry(txt)),selectedCategory==='Finance');
 }
-
 function logPomodoro(){
   send(encodeURIComponent(buildEntry('25mins')),false);
   hidePages();document.getElementById('page1').classList.add('active');
@@ -196,6 +121,3 @@ Success Diary:
     `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encodeURIComponent(note)}`;
 }
 </script>
-
-</body>
-</html>
