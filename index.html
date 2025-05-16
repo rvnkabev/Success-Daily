@@ -11,7 +11,6 @@
       font-size: 280%;
       text-align: center;
     }
-    .hidden { display: none; }
     .page { display: none; }
     .active { display: block; }
     button {
@@ -29,19 +28,27 @@
 </head>
 <body>
 
-<!-- 第一頁：選擇類別 -->
+<!-- 第一頁：主類別 -->
 <div class="page active" id="page1">
-  <h2>今日記錄類別</h2>
-  <button onclick="selectCategory('聆聽')">聆聽</button>
-  <button onclick="selectCategory('健康')">健康</button>
-  <button onclick="selectCategory('心靈')">心靈</button>
-  <button onclick="selectCategory('人際')">人際</button>
-  <button onclick="selectCategory('Fin')">Fin</button>
-  <button onclick="startReflection()">反省</button>
-  <button onclick="selectCategory('其他')">其他</button>
+  <h2>今日記錄主類別</h2>
+  <button onclick="selectCategory('Health')">Health</button>
+  <button onclick="selectCategory('MentalHealth')">MentalHealth</button>
+  <button onclick="selectCategory('Relationship')">Relationship</button>
+  <button onclick="selectCategory('Listen')">Listen</button>
+  <button onclick="selectCategory('Finance')">Finance</button>
+  <button onclick="selectCategory('Work')">Work</button>
+  <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
+  <button onclick="selectCategory('Reflect')">Reflect</button>
+  <button onclick="selectCategory('Other')">Other</button>
 </div>
 
-<!-- 第二頁：單項輸入 -->
+<!-- 第二頁：次項目 -->
+<div class="page" id="pageSub">
+  <h2 id="subCategoryTitle">選擇次項目</h2>
+  <div id="subButtons"></div>
+</div>
+
+<!-- 第三頁：單項輸入 -->
 <div class="page" id="pageInput">
   <h2 id="selectedCategoryLabel">類別</h2>
   <p id="currentTime"></p>
@@ -49,7 +56,7 @@
   <button onclick="saveToNotes()">儲存</button>
 </div>
 
-<!-- 反省流程頁 -->
+<!-- 反省流程頁（保留原有功能） -->
 <div class="page" id="reflect1">
   <h2>1. 為未來做咗咩？（運動、學習、人際、金融）</h2>
   <textarea id="answer1"></textarea>
@@ -81,8 +88,22 @@
 </div>
 
 <script>
-  let selectedCategory = '';
+  const categoryMap = {
+    "Health": ["Swim", "Gym"],
+    "MentalHealth": ["DelayGratification", "SelfControl"],
+    "Relationship": ["HappyWifeHappyLife", "Friendship"],
+    "Listen": ["NoInterrupt", "Understand", "Empathy"],
+    "Finance": [],
+    "Work": ["A12", "MEWP", "Communication"],
+    "Pomodoro": ["English", "Finance", "Reading", "Review"],
+    "Reflect": [],
+    "Other": []
+  };
 
+  let selectedCategory = '';
+  let selectedSubCategory = '';
+
+  /* ---------- 時間與日期 ---------- */
   function getCurrentTimeFormatted() {
     const now = new Date();
     let hours = now.getHours();
@@ -91,8 +112,6 @@
     hours = hours % 12 || 12;
     return `${hours}:${minutes}${ampm}`;
   }
-
-  // ✅ 使用本地時區產出正確日期
   function getTodayDateStr() {
     const now = new Date();
     const offsetMs = now.getTimezoneOffset() * 60000;
@@ -100,15 +119,54 @@
     return localTime.toISOString().split('T')[0];
   }
 
+  /* ---------- 畫面切換 ---------- */
   function hideAllPages() {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   }
 
   function selectCategory(category) {
+    if (category === 'Reflect') {
+      startReflection();
+      return;
+    }
     selectedCategory = category;
+    selectedSubCategory = '';
+    const subs = categoryMap[category] || [];
+
+    if (subs.length > 0) {
+      buildSubButtons(subs);
+      hideAllPages();
+      document.getElementById('pageSub').classList.add('active');
+    } else {
+      goToInputPage();
+    }
+  }
+
+  function buildSubButtons(subs) {
+    const wrapper = document.getElementById('subButtons');
+    wrapper.innerHTML = '';
+    document.getElementById('subCategoryTitle').textContent = `${selectedCategory} 次項目`;
+    subs.forEach(sub => {
+      const btn = document.createElement('button');
+      btn.textContent = sub;
+      btn.onclick = () => selectSubCategory(sub);
+      wrapper.appendChild(btn);
+    });
+  }
+
+  function selectSubCategory(sub) {
+    selectedSubCategory = sub;
+    goToInputPage();
+  }
+
+  function goToInputPage() {
     hideAllPages();
-    document.getElementById('selectedCategoryLabel').textContent = category;
+    const label = selectedSubCategory
+      ? `${selectedCategory} / ${selectedSubCategory}`
+      : selectedCategory;
+    document.getElementById('selectedCategoryLabel').textContent = label;
     document.getElementById('currentTime').textContent = getCurrentTimeFormatted();
+    document.getElementById('content').value = '';
     document.getElementById('pageInput').classList.add('active');
   }
 
@@ -122,19 +180,21 @@
     document.getElementById('reflect' + (current + 1)).classList.add('active');
   }
 
+  /* ---------- 儲存 ---------- */
   function saveToNotes() {
     const content = document.getElementById('content').value.trim();
-    if (!content) {
-      alert("請輸入內容！");
-      return;
-    }
+    if (!content) { alert("請輸入內容！"); return; }
 
     const date = getTodayDateStr();
     const time = getCurrentTimeFormatted();
-    const entry = `${date}\n${time} ｜ ${selectedCategory} ｜ ${content}`;
+    const tags = `#${selectedCategory}` + (selectedSubCategory ? ` #${selectedSubCategory}` : '');
+    const title = selectedSubCategory
+      ? `${selectedCategory}/${selectedSubCategory}`
+      : selectedCategory;
+    const entry = `${date}\n${time} ｜ ${title} ｜ ${content} ${tags}`;
     const encoded = encodeURIComponent(entry);
 
-    if (selectedCategory === 'Fin') {
+    if (selectedCategory === 'Finance') {
       const url1 = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
       const url2 = `shortcuts://run-shortcut?name=SaveToInvestment&input=text&text=${encoded}`;
       window.open(url1);
@@ -152,7 +212,6 @@
       document.getElementById('answer4').value.trim(),
       document.getElementById('answer5').value.trim()
     ];
-
     const note = `
 成功日記：
 1. 為未來：${answers[0]}
@@ -161,7 +220,6 @@
 4. 認真聆聽：${answers[3]}
 5. 對老婆的愛：${answers[4]}
     `.trim();
-
     const encoded = encodeURIComponent(note);
     window.location.href = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
   }
