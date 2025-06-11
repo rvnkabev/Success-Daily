@@ -84,154 +84,125 @@
 </div>
 
 <script>
-/* ----------- Category map ----------- */
-const categoryMap={
-  Health:["Swim","Gym","Other"],
-  MentalHealth:["DelayGratification","SelfControl","ErrorLearning","New","Other"],
-  Relationship:["HappyWifeHappyLife","Friendship","Other"],
-  Listen:["NoInterrupt","Understand","Empathy","Other"],
-  Finance:[],                 /* no sub-page */
-  Work:["A12","MEWP","Communication","Other"],
-  Pomodoro:["English","Finance","Reading","Review"],
-  Reflect:[],                 /* triggers reflect flow */
-  Other:[]
+const categoryMap = {
+  Health: ["Swim", "Gym", "Other"],
+  MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "Other"],
+  Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
+  Listen: ["NoInterrupt", "Understand", "Empathy", "Other"],
+  Finance: [],
+  Work: ["A12", "MEWP", "Communication", "Other"],
+  Pomodoro: ["English", "Finance", "Reading", "Review"],
+  Reflect: [],
+  Other: []
 };
 
-let selectedCategory='';
-let selectedSubCategory='';
+let selectedCategory = '';
+let selectedSubCategory = '';
 
-/* ----------- Time helpers ----------- */
-const fmtTime=()=>{
-  const d=new Date();
-  let h=d.getHours(),m=d.getMinutes().toString().padStart(2,'0');
-  const am=h>=12?'pm':'am';
-  h=h%12||12;
+const fmtTime = () => {
+  const d = new Date();
+  let h = d.getHours(), m = d.getMinutes().toString().padStart(2, '0');
+  const am = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
   return `${h}:${m}${am}`;
 };
-const fmtDate=()=>{
-  const now=new Date();
-  return new Date(now.getTime()-now.getTimezoneOffset()*60000)
-         .toISOString().split('T')[0];
+
+const fmtDate = () => {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 };
 
-/* ----------- Navigation helpers ----------- */
-const hidePages=()=>document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+const hidePages = () => document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 
-function selectCategory(cat){
-  if(cat==='Reflect'){startReflection();return;}
-  selectedCategory=cat;
-  selectedSubCategory='';
-  const subs=categoryMap[cat]||[];
-  if(subs.length>0 && cat!=='Pomodoro'){
+function selectCategory(cat) {
+  if (cat === 'Reflect') { startReflection(); return; }
+  selectedCategory = cat;
+  selectedSubCategory = '';
+  const subs = categoryMap[cat] || [];
+  if (subs.length > 0) {
     buildSubButtons(subs);
     hidePages();
     document.getElementById('pageSub').classList.add('active');
-  }else if(cat==='Pomodoro'){
-    buildSubButtons(subs);           /* still choose sub */
-    hidePages();
-    document.getElementById('pageSub').classList.add('active');
-  }else{
+  } else {
     gotoInput();
   }
 }
 
-function buildSubButtons(arr){
-  const wrap=document.getElementById('subButtons');
-  wrap.innerHTML='';
-  /* 只顯示主類別名稱，不附加任何其他文字 */
-  document.getElementById('subCategoryTitle').textContent=selectedCategory;
-  arr.forEach(s=>{
-    const b=document.createElement('button');
-    b.textContent=s;
-    b.onclick=()=>selectSubCategory(s);
+function buildSubButtons(arr) {
+  const wrap = document.getElementById('subButtons');
+  wrap.innerHTML = '';
+  document.getElementById('subCategoryTitle').textContent = selectedCategory;
+  arr.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s;
+    b.onclick = () => selectSubCategory(s);
     wrap.appendChild(b);
   });
 }
 
-function selectSubCategory(sub){
-  selectedSubCategory=sub;
-  /* Pomodoro auto-log 25 mins without free text */
-  if(selectedCategory==='Pomodoro'){
+function selectSubCategory(sub) {
+  selectedSubCategory = sub;
+  if (selectedCategory === 'Pomodoro') {
     logPomodoro();
-  }else{
+  } else {
     gotoInput();
   }
 }
 
-function gotoInput(){
+function gotoInput() {
   hidePages();
-  const label=selectedSubCategory
-             ?`${selectedCategory}/${selectedSubCategory}`
-             : selectedCategory;
-  document.getElementById('selectedCategoryLabel').textContent=label;
-  document.getElementById('currentTime').textContent=fmtTime();
-  document.getElementById('content').value='';
+  const label = selectedSubCategory ? `${selectedCategory}/${selectedSubCategory}` : selectedCategory;
+  document.getElementById('selectedCategoryLabel').textContent = label;
+  document.getElementById('currentTime').textContent = fmtTime();
+  document.getElementById('content').value = '';
   document.getElementById('pageInput').classList.add('active');
 }
 
-function startReflection(){
+function startReflection() {
   hidePages();
   document.getElementById('reflect1').classList.add('active');
 }
-function nextPage(i){
-  document.getElementById('reflect'+i).classList.remove('active');
-  document.getElementById('reflect'+(i+1)).classList.add('active');
+function nextPage(i) {
+  document.getElementById('reflect' + i).classList.remove('active');
+  document.getElementById('reflect' + (i + 1)).classList.add('active');
 }
 
-/* ----------- Save helpers ----------- */
-function buildEntry(text){
-  const date=fmtDate(),time=fmtTime();
-  const tags=`#${selectedCategory}`+(selectedSubCategory?` #${selectedSubCategory}`:'');
-  const title=selectedSubCategory
-             ?`${selectedCategory}/${selectedSubCategory}`
-             : selectedCategory;
-  return `${date}\n${time} ｜ ${title} ｜ ${text} ${tags}`;
+function buildEntry(text) {
+  const date = fmtDate(), time = fmtTime();
+  const tags = [`#${selectedCategory.toLowerCase()}`, selectedSubCategory ? `#${selectedSubCategory.toLowerCase()}` : ''].filter(Boolean).join(' ');
+  return `[${date}\n${time} ｜ ${text} ${tags}]`;
 }
-function sendToShortcuts(encoded,isFin){
-  if(isFin){
-    const u1=`shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
-    const u2=`shortcuts://run-shortcut?name=SaveToInvestment&input=text&text=${encoded}`;
+
+function sendToShortcuts(encoded, isFinance) {
+  const u1 = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
+  if (isFinance) {
+    const u2 = `shortcuts://run-shortcut?name=SaveToInvestment&input=text&text=${encoded}`;
     window.open(u1);
-    setTimeout(()=>window.location.href=u2,500);
-  }else{
-    window.location.href=
-      `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
+    setTimeout(() => window.location.href = u2, 500);
+  } else {
+    window.location.href = u1;
   }
 }
 
-/* Free-text categories */
-function saveToNotes(){
-  const txt=document.getElementById('content').value.trim();
-  if(!txt){alert("Please enter something!");return;}
-  const note=buildEntry(txt);
-  sendToShortcuts(encodeURIComponent(note),selectedCategory==='Finance');
+function saveToNotes() {
+  const txt = document.getElementById('content').value.trim();
+  if (!txt) { alert("Please enter something!"); return; }
+  const note = buildEntry(txt);
+  sendToShortcuts(encodeURIComponent(note), selectedCategory === 'Finance');
 }
 
-/* Pomodoro auto-log */
-function logPomodoro(){
-  const note=buildEntry('25mins');
-  sendToShortcuts(encodeURIComponent(note),false);
-  /* Return to main page */
+function logPomodoro() {
+  const note = buildEntry('25mins');
+  sendToShortcuts(encodeURIComponent(note), false);
   hidePages();
   document.getElementById('page1').classList.add('active');
 }
 
-/* Reflect save */
-function submitReflection(){
-  const ans=[1,2,3,4,5]
-    .map(i=>document.getElementById('answer'+i).value.trim());
-  const note=`
-Success Diary:
-1. Future-oriented actions: ${ans[0]}
-2. Emotion handling: ${ans[1]}
-3. Self-praise / support: ${ans[2]}
-4. Active listening: ${ans[3]}
-5. Love for wife: ${ans[4]}
-  `.trim();
-  window.location.href=
-    `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encodeURIComponent(note)}`;
+function submitReflection() {
+  const ans = [1, 2, 3, 4, 5].map(i => document.getElementById('answer' + i).value.trim());
+  const note = `Success Diary:\n1. Future-oriented actions: ${ans[0]}\n2. Emotion handling: ${ans[1]}\n3. Self-praise / support: ${ans[2]}\n4. Active listening: ${ans[3]}\n5. Love for wife: ${ans[4]}`;
+  window.location.href = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encodeURIComponent(note)}`;
 }
 </script>
-
 </body>
 </html>
