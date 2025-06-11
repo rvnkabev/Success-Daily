@@ -185,8 +185,12 @@ function sendToShortcuts(encoded, isFinance) {
 }
 
 function saveToNotes() {
-  const txt = document.getElementById('content').value.trim();
+  let txt = document.getElementById('content').value.trim();
   if (!txt) { alert("Please enter something!"); return; }
+
+  // 修正常見錯誤，例如 #review]
+  txt = txt.replace(/#review\]/gi, '#review');
+
   const note = buildEntry(txt);
   sendToShortcuts(encodeURIComponent(note), selectedCategory === 'Finance');
 }
