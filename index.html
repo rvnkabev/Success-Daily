@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Success Diary</title>
   <style>
     body{
@@ -18,37 +18,46 @@
       padding: 0.3em 1em;
       font-size: 90%;
     }
-    input,textarea{
+    input,textarea,select{
       width: 90%;
       padding: 0.5em;
       font-size: 90%;
-      margin: 1em 0;
+      margin: 0.6em 0;
     }
+    .row{
+      display:flex;
+      gap:0.6em;
+      justify-content:center;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .row > * { flex: 1 1 240px; max-width: 480px; }
+    .hint{font-size: 60%; color:#666; margin-top:-0.4em}
+    .small{font-size: 70%;}
   </style>
 </head>
 <body>
 
-<!-- 1-Main categories -->
+<!-- 1 - Main categories -->
 <div class="page active" id="page1">
   <h2>Select Main Category</h2>
   <button onclick="selectCategory('Health')">Health</button>
   <button onclick="selectCategory('MentalHealth')">Mental&nbsp;Health</button>
   <button onclick="selectCategory('Relationship')">Relationship</button>
-  <button onclick="selectCategory('Listen')">Listen</button>
   <button onclick="selectCategory('Finance')">Finance</button>
   <button onclick="selectCategory('Work')">Work</button>
   <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
-  <button onclick="selectCategory('Reflect')">Reflect</button>
   <button onclick="selectCategory('Other')">Other</button>
+  <p class="small hint">Updated: Health uses a dedicated form. Removed: Listen / Reflect.</p>
 </div>
 
-<!-- 2-Sub-categories -->
+<!-- 2 - Sub-categories (for non-Health / non-Pomodoro when needed) -->
 <div class="page" id="pageSub">
   <h2 id="subCategoryTitle"></h2>
   <div id="subButtons"></div>
 </div>
 
-<!-- 3-Free-text input -->
+<!-- 3 - Free-text input (generic logger) -->
 <div class="page" id="pageInput">
   <h2 id="selectedCategoryLabel"></h2>
   <p id="currentTime"></p>
@@ -56,49 +65,41 @@
   <button onclick="saveToNotes()">Save</button>
 </div>
 
-<!-- 4-Reflect flow -->
-<div class="page" id="reflect1">
-  <h2>1. What did I do for the future? (exercise, learning, relationships, finance)</h2>
-  <textarea id="answer1"></textarea>
-  <button onclick="nextPage(1)">Next</button>
-</div>
-<div class="page" id="reflect2">
-  <h2>2. Any emotional distress? How did I handle it?</h2>
-  <textarea id="answer2"></textarea>
-  <button onclick="nextPage(2)">Next</button>
-</div>
-<div class="page" id="reflect3">
-  <h2>3. Did I praise or support myself?</h2>
-  <textarea id="answer3"></textarea>
-  <button onclick="nextPage(3)">Next</button>
-</div>
-<div class="page" id="reflect4">
-  <h2>4. Did I really listen to others instead of proving myself?</h2>
-  <textarea id="answer4"></textarea>
-  <button onclick="nextPage(4)">Next</button>
-</div>
-<div class="page" id="reflect5">
-  <h2>5. What did I do for my wife that made her happy today?</h2>
-  <textarea id="answer5"></textarea>
-  <button onclick="submitReflection()">Save</button>
+<!-- 4 - Health form -->
+<div class="page" id="pageHealth">
+  <h2>Health — Daily Check-in</h2>
+  <p id="healthTime" class="small"></p>
+  <div class="row">
+    <input type="number" id="sleepHours" placeholder="Sleeping hours (e.g., 7.5)" min="0" max="24" step="0.1" />
+    <input type="time" id="onBedTime" placeholder="On bed time" />
+    <div style="flex:1 1 240px; max-width:480px;">
+      <label for="energy" class="small">Energy (0–10)</label>
+      <input type="range" id="energy" min="0" max="10" step="1" />
+      <div class="small" id="energyVal">5</div>
+    </div>
+  </div>
+  <textarea id="healthNotes" placeholder="Optional notes (diet, symptoms, meds, etc.)"></textarea>
+  <button onclick="saveHealth()">Save</button>
+  <button onclick="goHome()">Cancel</button>
 </div>
 
 <script>
+/** ---------- Config ---------- **/
 const categoryMap = {
-  Health: ["Swim", "Gym", "Other"],
+  // Health uses its own dedicated page (no subcategories)
+  Health: [],
   MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "服從", "忍", "risk", "Other"],
   Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
-  Listen: ["NoInterrupt", "Understand", "Empathy", "Other"],
   Finance: [],
   Work: ["A12", "MEWP", "Communication", "Other"],
   Pomodoro: ["English", "Finance", "Reading", "Review"],
-  Reflect: [],
   Other: []
 };
 
 let selectedCategory = '';
 let selectedSubCategory = '';
 
+/** ---------- Time helpers ---------- **/
 const fmtTime = () => {
   const d = new Date();
   let h = d.getHours(), m = d.getMinutes().toString().padStart(2, '0');
@@ -112,13 +113,28 @@ const fmtDate = () => {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 };
 
+/** ---------- UI helpers ---------- **/
 const hidePages = () => document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+const goHome = () => { hidePages(); document.getElementById('page1').classList.add('active'); };
 
+/** ---------- Category flow ---------- **/
 function selectCategory(cat) {
-  if (cat === 'Reflect') { startReflection(); return; }
   selectedCategory = cat;
   selectedSubCategory = '';
+
+  // Health goes to custom form
+  if (cat === 'Health') { return gotoHealth(); }
+
+  // Pomodoro has subcats but logs immediately with 25mins notes per sub select
   const subs = categoryMap[cat] || [];
+  if (cat === 'Pomodoro') {
+    buildSubButtons(subs);
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
+    return;
+  }
+
+  // Other categories: if subs exist, show; else go input
   if (subs.length > 0) {
     buildSubButtons(subs);
     hidePages();
@@ -158,18 +174,31 @@ function gotoInput() {
   document.getElementById('pageInput').classList.add('active');
 }
 
-function startReflection() {
+/** ---------- Health page ---------- **/
+function gotoHealth() {
   hidePages();
-  document.getElementById('reflect1').classList.add('active');
-}
-function nextPage(i) {
-  document.getElementById('reflect' + i).classList.remove('active');
-  document.getElementById('reflect' + (i + 1)).classList.add('active');
+  // reset fields
+  document.getElementById('sleepHours').value = '';
+  document.getElementById('onBedTime').value = '';
+  document.getElementById('energy').value = 5;
+  document.getElementById('energyVal').textContent = '5';
+  document.getElementById('healthNotes').value = '';
+  document.getElementById('healthTime').textContent = `${fmtDate()} ${fmtTime()}`;
+  document.getElementById('pageHealth').classList.add('active');
 }
 
+// energy value preview
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'energy') {
+    document.getElementById('energyVal').textContent = e.target.value;
+  }
+});
+
+/** ---------- Note building & saving ---------- **/
 function buildEntry(text) {
   const date = fmtDate(), time = fmtTime();
-  const tags = [`#${selectedCategory.toLowerCase()}`, selectedSubCategory ? `#${selectedSubCategory.toLowerCase()}` : ''].filter(Boolean).join(' ');
+  const tags = [`#${selectedCategory.toLowerCase()}`, selectedSubCategory ? `#${selectedSubCategory.toLowerCase()}` : '']
+    .filter(Boolean).join(' ');
   return `[${date}\n${time} ｜ ${text} ${tags}]`;
 }
 
@@ -184,6 +213,7 @@ function sendToShortcuts(encoded, isFinance) {
   }
 }
 
+/** Generic free-text save **/
 function saveToNotes() {
   let txt = document.getElementById('content').value.trim();
   if (!txt) { alert("Please enter something!"); return; }
@@ -195,17 +225,63 @@ function saveToNotes() {
   sendToShortcuts(encodeURIComponent(note), selectedCategory === 'Finance');
 }
 
+/** Pomodoro quick log **/
 function logPomodoro() {
   const note = buildEntry('25mins');
   sendToShortcuts(encodeURIComponent(note), false);
-  hidePages();
-  document.getElementById('page1').classList.add('active');
+  goHome();
 }
 
-function submitReflection() {
-  const ans = [1, 2, 3, 4, 5].map(i => document.getElementById('answer' + i).value.trim());
-  const note = `Success Diary:\n1. Future-oriented actions: ${ans[0]}\n2. Emotion handling: ${ans[1]}\n3. Self-praise / support: ${ans[2]}\n4. Active listening: ${ans[3]}\n5. Love for wife: ${ans[4]}`;
-  window.location.href = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encodeURIComponent(note)}`;
+/** Health structured save **/
+function saveHealth() {
+  const hours = parseFloat((document.getElementById('sleepHours').value || '').trim());
+  const onBed = (document.getElementById('onBedTime').value || '').trim();
+  const energy = parseInt(document.getElementById('energy').value, 10);
+  const notes = (document.getElementById('healthNotes').value || '').trim();
+
+  // Basic validation
+  if (isNaN(hours) || hours < 0 || hours > 24) {
+    alert('Please enter sleeping hours between 0 and 24.');
+    return;
+  }
+  if (!onBed) {
+    alert('Please enter on-bed time.');
+    return;
+  }
+  if (isNaN(energy) || energy < 0 || energy > 10) {
+    alert('Energy must be 0–10.');
+    return;
+  }
+
+  // Compose a compact, structured line
+  const onBedHuman = toHumanTime(onBed);
+  const pieces = [
+    `sleep=${hours}h`,
+    `onBed=${onBedHuman}`,
+    `energy=${energy}/10`
+  ];
+  if (notes) pieces.push(`notes=${sanitizeInline(notes)}`);
+
+  const text = pieces.join(' | ');
+  selectedCategory = 'Health';
+  selectedSubCategory = ''; // Health has no subcat now
+  const note = buildEntry(text);
+  sendToShortcuts(encodeURIComponent(note), false);
+}
+
+/** helpers **/
+function toHumanTime(hhmm) {
+  // "23:15" -> "11:15pm"
+  const [hStr, mStr] = hhmm.split(':');
+  let h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return `${h}:${mStr}${ampm}`;
+}
+
+function sanitizeInline(s) {
+  // keep single-line, remove closing bracket to avoid breaking the note wrapper
+  return s.replace(/\n+/g, ' ').replace(/\]/g, ')');
 }
 </script>
 </body>
