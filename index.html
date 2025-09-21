@@ -69,10 +69,10 @@
   <h2>Health — Daily Check-in</h2>
   <p id="healthTime" class="small"></p>
   <div class="row">
-    <!-- Sleeping hours dropdown -->
+    <!-- Sleeping hours: dropdown 4–12, default 7 -->
     <div style="flex:1 1 240px; max-width:480px;">
-      <label for="sleepHoursSelect" class="small">Sleeping hours (4–12)</label>
-      <select id="sleepHoursSelect">
+      <label for="sleepHours" class="small">Sleeping hours</label>
+      <select id="sleepHours">
         <option value="4">4</option>
         <option value="5">5</option>
         <option value="6">6</option>
@@ -85,16 +85,17 @@
       </select>
     </div>
 
-    <!-- On-bed time (default 21:30) -->
+    <!-- On-bed time: default 21:30 -->
     <div style="flex:1 1 240px; max-width:480px;">
-      <label for="onBedTime" class="small">On-bed time</label>
+      <label for="onBedTime" class="small">On bed time</label>
       <input type="time" id="onBedTime" />
+      <div class="hint">Default 9:30pm</div>
     </div>
 
-    <!-- Energy dropdown -->
+    <!-- Energy: dropdown 1–10, default 7 -->
     <div style="flex:1 1 240px; max-width:480px;">
-      <label for="energySelect" class="small">Energy (1–10)</label>
-      <select id="energySelect">
+      <label for="energy" class="small">Energy (1–10)</label>
+      <select id="energy">
         <option value="1">1</option>
         <option value="2">2</option>
         <option value="3">3</option>
@@ -106,7 +107,6 @@
         <option value="9">9</option>
         <option value="10">10</option>
       </select>
-      <div class="small" id="energyVal">7</div>
     </div>
   </div>
 
@@ -209,22 +209,14 @@ function gotoInput() {
 /** ---------- Health page ---------- **/
 function gotoHealth() {
   hidePages();
-  // reset defaults
-  document.getElementById('sleepHoursSelect').value = '7';   // default 7h
-  document.getElementById('onBedTime').value = '21:30';      // default 9:30pm
-  document.getElementById('energySelect').value = '7';       // default 7/10
-  document.getElementById('energyVal').textContent = '7';
+  // defaults
+  document.getElementById('sleepHours').value = '7';   // default 7 hours
+  document.getElementById('onBedTime').value = '21:30';// default 9:30pm
+  document.getElementById('energy').value = '7';       // default energy 7
   document.getElementById('healthNotes').value = '';
   document.getElementById('healthTime').textContent = `${fmtDate()} ${fmtTime()}`;
   document.getElementById('pageHealth').classList.add('active');
 }
-
-// reflect energy select to small preview
-document.addEventListener('change', (e) => {
-  if (e.target && e.target.id === 'energySelect') {
-    document.getElementById('energyVal').textContent = e.target.value;
-  }
-});
 
 /** ---------- Note building & saving ---------- **/
 function buildEntry(text) {
@@ -266,12 +258,12 @@ function logPomodoro() {
 
 /** Health structured save **/
 function saveHealth() {
-  const hours = parseFloat((document.getElementById('sleepHoursSelect').value || '').trim());
+  const hours = parseInt((document.getElementById('sleepHours').value || '').trim(), 10);
   const onBed = (document.getElementById('onBedTime').value || '').trim();
-  const energy = parseInt(document.getElementById('energySelect').value, 10);
+  const energy = parseInt(document.getElementById('energy').value, 10);
   const notes = (document.getElementById('healthNotes').value || '').trim();
 
-  // Basic validation for new ranges
+  // Validation adjusted to dropdown ranges
   if (isNaN(hours) || hours < 4 || hours > 12) {
     alert('Please select sleeping hours between 4 and 12.');
     return;
@@ -289,7 +281,7 @@ function saveHealth() {
   const onBedHuman = toHumanTime(onBed);
   const pieces = [
     `sleep=${hours}h`,
-    `onBed=${onBedHuman`,
+    `onBed=${onBedHuman}`,
     `energy=${energy}/10`
   ];
   if (notes) pieces.push(`notes=${sanitizeInline(notes)}`);
