@@ -17,6 +17,7 @@
       margin: 0.4em;
       padding: 0.3em 1em;
       font-size: 90%;
+      cursor: pointer;
     }
     input,textarea,select{
       width: 90%;
@@ -34,6 +35,39 @@
     .row > * { flex: 1 1 240px; max-width: 480px; }
     .hint{font-size: 60%; color:#666; margin-top:-0.4em}
     .small{font-size: 70%;}
+    /* Energy segmented control */
+    .energy-group{
+      display:flex;
+      gap:0.4em;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+    .energy-option{
+      position: relative;
+      display:inline-block;
+    }
+    .energy-option input{
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+    }
+    .energy-option label{
+      display:inline-block;
+      padding: 0.4em 0.6em;
+      border: 2px solid #ddd;
+      border-radius: 999px;
+      user-select:none;
+    }
+    .energy-option input:checked + label{
+      border-color:#333;
+      background:#fff;
+      box-shadow: 0 0 0 2px #333 inset;
+    }
+    .energy-pill-title{
+      font-size: 70%;
+      color:#555;
+      margin-bottom:0.2em;
+    }
   </style>
 </head>
 <body>
@@ -69,14 +103,50 @@
   <h2>Health — Daily Check-in</h2>
   <p id="healthTime" class="small"></p>
   <div class="row">
-    <input type="number" id="sleepHours" placeholder="Sleeping hours (e.g., 7.5)" min="0" max="24" step="0.1" />
-    <input type="time" id="onBedTime" placeholder="On bed time" />
+    <!-- Sleeping hours -> dropdown 4..12 default 7 -->
     <div style="flex:1 1 240px; max-width:480px;">
-      <label for="energy" class="small">Energy (0–10)</label>
-      <input type="range" id="energy" min="0" max="10" step="1" />
-      <div class="small" id="energyVal">5</div>
+      <label for="sleepHoursSelect" class="small">Sleeping hours</label>
+      <select id="sleepHoursSelect">
+        <!-- options injected by JS to avoid typos -->
+      </select>
+    </div>
+
+    <!-- On bed time -> default 21:30 -->
+    <div style="flex:1 1 240px; max-width:480px;">
+      <label for="onBedTime" class="small">On bed time</label>
+      <input type="time" id="onBedTime" />
+    </div>
+
+    <!-- Energy -> simplified 5-step choices -->
+    <div style="flex:1 1 240px; max-width:480px;">
+      <div class="energy-pill-title">Energy</div>
+      <div class="energy-group" role="radiogroup" aria-label="Energy">
+        <!-- Radio buttons -->
+        <span class="energy-option">
+          <input type="radio" name="energy" id="en0" value="0" />
+          <label for="en0">😴 Very&nbsp;Low</label>
+        </span>
+        <span class="energy-option">
+          <input type="radio" name="energy" id="en3" value="3" />
+          <label for="en3">🙂 Low</label>
+        </span>
+        <span class="energy-option">
+          <input type="radio" name="energy" id="en6" value="6" />
+          <label for="en6">😌 OK</label>
+        </span>
+        <span class="energy-option">
+          <input type="radio" name="energy" id="en8" value="8" />
+          <label for="en8">⚡ Good</label>
+        </span>
+        <span class="energy-option">
+          <input type="radio" name="energy" id="en10" value="10" />
+          <label for="en10">🚀 Great</label>
+        </span>
+      </div>
+      <div class="small" id="energyVal">OK (6/10)</div>
     </div>
   </div>
+
   <textarea id="healthNotes" placeholder="Optional notes (diet, symptoms, meds, etc.)"></textarea>
   <button onclick="saveHealth()">Save</button>
   <button onclick="goHome()">Cancel</button>
@@ -176,20 +246,39 @@ function gotoInput() {
 /** ---------- Health page ---------- **/
 function gotoHealth() {
   hidePages();
-  // reset fields
-  document.getElementById('sleepHours').value = '';
-  document.getElementById('onBedTime').value = '';
-  document.getElementById('energy').value = 5;
-  document.getElementById('energyVal').textContent = '5';
+
+  // 1) Sleeping hours select (4..12) default 7
+  const sel = document.getElementById('sleepHoursSelect');
+  sel.innerHTML = '';
+  for (let h = 4; h <= 12; h++) {
+    const opt = document.createElement('option');
+    opt.value = h.toFixed(1); // store as number-like string (e.g., "7.0")
+    opt.textContent = `${h}`;
+    if (h === 7) opt.selected = true;
+    sel.appendChild(opt);
+  }
+
+  // 2) On bed time default 21:30
+  const bed = document.getElementById('onBedTime');
+  bed.value = '21:30';
+
+  // 3) Energy default = OK (6/10)
+  const enDefault = document.getElementById('en6');
+  enDefault.checked = true;
+  document.getElementById('energyVal').textContent = 'OK (6/10)';
+
+  // reset notes + header time
   document.getElementById('healthNotes').value = '';
   document.getElementById('healthTime').textContent = `${fmtDate()} ${fmtTime()}`;
   document.getElementById('pageHealth').classList.add('active');
 }
 
-// energy value preview
-document.addEventListener('input', (e) => {
-  if (e.target && e.target.id === 'energy') {
-    document.getElementById('energyVal').textContent = e.target.value;
+// reflect energy label on change
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.name === 'energy') {
+    const val = parseInt(e.target.value, 10);
+    const label = energyLabel(val);
+    document.getElementById('energyVal').textContent = `${label} (${val}/10)`;
   }
 });
 
@@ -233,14 +322,19 @@ function logPomodoro() {
 
 /** Health structured save **/
 function saveHealth() {
-  const hours = parseFloat((document.getElementById('sleepHours').value || '').trim());
+  const hoursStr = (document.getElementById('sleepHoursSelect').value || '').trim();
+  const hours = parseFloat(hoursStr);
   const onBed = (document.getElementById('onBedTime').value || '').trim();
-  const energy = parseInt(document.getElementById('energy').value, 10);
+
+  // Energy from selected radio
+  const enSelected = document.querySelector('input[name="energy"]:checked');
+  const energy = enSelected ? parseInt(enSelected.value, 10) : NaN;
+
   const notes = (document.getElementById('healthNotes').value || '').trim();
 
   // Basic validation
   if (isNaN(hours) || hours < 0 || hours > 24) {
-    alert('Please enter sleeping hours between 0 and 24.');
+    alert('Please choose sleeping hours between 0 and 24.');
     return;
   }
   if (!onBed) {
@@ -248,7 +342,7 @@ function saveHealth() {
     return;
   }
   if (isNaN(energy) || energy < 0 || energy > 10) {
-    alert('Energy must be 0–10.');
+    alert('Please choose an energy level.');
     return;
   }
 
@@ -281,6 +375,14 @@ function toHumanTime(hhmm) {
 function sanitizeInline(s) {
   // keep single-line, remove closing bracket to avoid breaking the note wrapper
   return s.replace(/\n+/g, ' ').replace(/\]/g, ')');
+}
+
+function energyLabel(val){
+  if (val >= 10) return 'Great';
+  if (val >= 8) return 'Good';
+  if (val >= 6) return 'OK';
+  if (val >= 3) return 'Low';
+  return 'Very Low';
 }
 </script>
 </body>
