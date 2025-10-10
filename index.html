@@ -17,6 +17,7 @@
       margin: 0.4em;
       padding: 0.3em 1em;
       font-size: 90%;
+      cursor: pointer;
     }
     input,textarea,select{
       width: 90%;
@@ -34,6 +35,12 @@
     .row > * { flex: 1 1 240px; max-width: 480px; }
     .hint{font-size: 60%; color:#666; margin-top:-0.4em}
     .small{font-size: 70%;}
+    .tagbar{display:none; margin:0.4em 0;}
+    .tagbar button{font-size:70%;}
+    .chip{display:inline-block; padding:0.2em 0.6em; border:1px solid #999; border-radius:999px; margin:0.1em;}
+    .todo-wrap{max-width:760px; margin:0 auto; text-align:left; font-size:70%;}
+    .todo-item{display:flex; align-items:center; gap:0.6em; padding:0.3em 0;}
+    .todo-actions{text-align:center; margin-top:0.6em;}
   </style>
 </head>
 <body>
@@ -47,29 +54,31 @@
   <button onclick="selectCategory('Finance')">Finance</button>
   <button onclick="selectCategory('Work')">Work</button>
   <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
-  <button onclick="selectCategory('Tonight ToDoList')">Tonight&nbsp;ToDoList</button>
+  <button onclick="selectCategory('TonightToDoList')">Tonight&nbsp;ToDoList</button>
   <button onclick="selectCategory('Other')">Other</button>
 </div>
 
-<!-- 2 - Sub-categories -->
+<!-- 2 - Sub-categories (for non-Health / non-Pomodoro when needed) -->
 <div class="page" id="pageSub">
   <h2 id="subCategoryTitle"></h2>
   <div id="subButtons"></div>
 </div>
 
-<!-- 2.5 - Relationship tag layer (#eat / #desire) -->
-<div class="page" id="pageRelTags">
-  <h2 id="relTagTitle">Relationship Tag</h2>
-  <div id="relTagButtons"></div>
-  <div class="small" style="margin-top:0.6em">（可選 #eat、#desire，或 Skip 跳過）</div>
-</div>
-
-<!-- 3 - Free-text input -->
+<!-- 3 - Free-text input (generic logger) -->
 <div class="page" id="pageInput">
   <h2 id="selectedCategoryLabel"></h2>
   <p id="currentTime"></p>
+
+  <!-- Relationship quick tags -->
+  <div id="relationshipTagBar" class="tagbar">
+    <span class="small">Quick tags:</span>
+    <button class="chip" data-tag="#eat" onclick="toggleQuickTag(this)">#eat</button>
+    <button class="chip" data-tag="#desire" onclick="toggleQuickTag(this)">#desire</button>
+  </div>
+
   <input type="text" id="content" placeholder="Describe here…" />
   <button onclick="saveToNotes()">Save</button>
+  <button onclick="goHome()">Cancel</button>
 </div>
 
 <!-- 4 - Health form -->
@@ -77,67 +86,90 @@
   <h2>Health — Daily Check-in</h2>
   <p id="healthTime" class="small"></p>
   <div class="row">
+    <!-- Sleeping hours: dropdown 4–12, default 7 -->
     <div style="flex:1 1 240px; max-width:480px;">
       <label for="sleepHours" class="small">Sleeping hours</label>
       <select id="sleepHours">
-        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-        <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
-        <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7" selected>7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12">12</option>
       </select>
     </div>
+
+    <!-- On-bed time: default 21:30 -->
     <div style="flex:1 1 240px; max-width:480px;">
       <label for="onBedTime" class="small">On bed time</label>
       <input type="time" id="onBedTime" />
       <div class="hint">Default 9:30pm</div>
     </div>
+
+    <!-- Energy: dropdown 1–10, default 7 -->
     <div style="flex:1 1 240px; max-width:480px;">
       <label for="energy" class="small">Energy (1–10)</label>
       <select id="energy">
-        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-        <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7" selected>7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
       </select>
     </div>
   </div>
+
   <textarea id="healthNotes" placeholder="Optional notes (diet, symptoms, meds, etc.)"></textarea>
   <button onclick="saveHealth()">Save</button>
   <button onclick="goHome()">Cancel</button>
 </div>
 
-<!-- 5 - Tonight ToDoList -->
+<!-- 5 - Tonight ToDoList (multi-select) -->
 <div class="page" id="pageTodo">
   <h2>Tonight ToDoList</h2>
-  <div id="todoButtons"></div>
-  <button onclick="goHome()">Cancel</button>
+  <p id="todoTime" class="small"></p>
+  <div class="todo-wrap" id="todoWrap">
+    <!-- checkboxes injected by JS -->
+  </div>
+  <div class="todo-actions">
+    <button onclick="saveTonightTodo()">Save</button>
+    <button onclick="goHome()">Cancel</button>
+  </div>
 </div>
 
 <script>
 /** ---------- Config ---------- **/
 const categoryMap = {
   Health: [],
-  // 移除 服從 / 忍 / risk
-  MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "Other"],
-  Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
+  // MentalHealth removed: 服從, 忍, risk
+  MentalHealth: ["DelayGratification","SelfControl","ErrorLearning","New","Desire","Anxiety","Other"],
+  Relationship: ["HappyWifeHappyLife","Friendship","Father","Mother","Wife","Other"],
   Finance: [],
-  Work: ["A12", "MEWP", "Communication", "Other"],
-  Pomodoro: ["English", "Finance", "Reading", "Review"],
-  "Tonight ToDoList": [],
+  Work: ["A12","MEWP","Communication","Other"],
+  Pomodoro: ["English","Finance","Reading","Review"],
+  TonightToDoList: [], // dedicated page
   Other: []
 };
 
-// Tonight ToDoList 項目
 const tonightTodos = [
-  "買雞",
-  "整雞水（1.5hr）",
-  "整雞水（30mins）",
-  "運動",
-  "游水",
-  "Other"
+  { id:"buyChicken", label:"買雞" },
+  { id:"soup90",    label:"整雞水（1.5hr）" },
+  { id:"soup30",    label:"整雞水（30mins）" },
+  { id:"exercise",  label:"運動" },
+  { id:"swim",      label:"游水" },
+  { id:"other",     label:"other", hasInput:true }
 ];
 
 let selectedCategory = '';
 let selectedSubCategory = '';
-let selectedRelTag = ''; // 只用於 Relationship：#eat / #desire
 
 /** ---------- Time helpers ---------- **/
 const fmtTime = () => {
@@ -147,6 +179,7 @@ const fmtTime = () => {
   h = h % 12 || 12;
   return `${h}:${m}${am}`;
 };
+
 const fmtDate = () => {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
@@ -160,20 +193,22 @@ const goHome = () => { hidePages(); document.getElementById('page1').classList.a
 function selectCategory(cat) {
   selectedCategory = cat;
   selectedSubCategory = '';
-  selectedRelTag = '';
 
-  if (cat === 'Health') return gotoHealth();
-  if (cat === 'Tonight ToDoList') return gotoTodo();
+  if (cat === 'Health') { return gotoHealth(); }
+  if (cat === 'TonightToDoList') { return gotoTonightTodo(); }
 
   const subs = categoryMap[cat] || [];
   if (cat === 'Pomodoro') {
     buildSubButtons(subs);
-    hidePages(); document.getElementById('pageSub').classList.add('active');
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
     return;
   }
+
   if (subs.length > 0) {
     buildSubButtons(subs);
-    hidePages(); document.getElementById('pageSub').classList.add('active');
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
   } else {
     gotoInput();
   }
@@ -195,45 +230,39 @@ function selectSubCategory(sub) {
   selectedSubCategory = sub;
   if (selectedCategory === 'Pomodoro') {
     logPomodoro();
-  } else if (selectedCategory === 'Relationship') {
-    // Relationship 需要再選 #eat / #desire
-    showRelTags();
   } else {
     gotoInput();
   }
 }
 
-/** ---------- Relationship tag layer ---------- **/
-function showRelTags() {
-  hidePages();
-  const title = document.getElementById('relTagTitle');
-  const btns = document.getElementById('relTagButtons');
-  title.textContent = `Relationship — ${selectedSubCategory}`;
-  btns.innerHTML = '';
-
-  const options = ['#eat', '#desire', 'Skip'];
-  options.forEach(opt => {
-    const b = document.createElement('button');
-    b.textContent = opt;
-    b.onclick = () => {
-      selectedRelTag = (opt === 'Skip') ? '' : opt;
-      gotoInput();
-    };
-    btns.appendChild(b);
-  });
-
-  document.getElementById('pageRelTags').classList.add('active');
-}
-
-/** ---------- Input page ---------- **/
 function gotoInput() {
   hidePages();
   const label = selectedSubCategory ? `${selectedCategory}/${selectedSubCategory}` : selectedCategory;
   document.getElementById('selectedCategoryLabel').textContent = label;
   document.getElementById('currentTime').textContent = fmtTime();
   document.getElementById('content').value = '';
+
+  // Relationship quick tag bar toggle
+  const showTagBar = (selectedCategory === 'Relationship');
+  document.getElementById('relationshipTagBar').style.display = showTagBar ? 'block' : 'none';
+
   document.getElementById('pageInput').classList.add('active');
 }
+
+/** ---------- Relationship quick tags ---------- **/
+function toggleQuickTag(btn){
+  const tag = btn.getAttribute('data-tag');
+  const input = document.getElementById('content');
+  const has = new RegExp(`\\b${escapeRegExp(tag)}\\b`).test(input.value);
+  if (has){
+    // remove tag (clean double spaces)
+    input.value = input.value.replace(new RegExp(`\\s*${escapeRegExp(tag)}\\b`,'g'),'').trim();
+  } else {
+    input.value = (input.value + ' ' + tag).trim();
+  }
+}
+
+function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
 /** ---------- Health page ---------- **/
 function gotoHealth() {
@@ -247,23 +276,34 @@ function gotoHealth() {
 }
 
 /** ---------- Tonight ToDoList page ---------- **/
-function gotoTodo() {
+function gotoTonightTodo(){
   hidePages();
-  const wrap = document.getElementById('todoButtons');
+  document.getElementById('todoTime').textContent = `${fmtDate()} ${fmtTime()}`;
+  const wrap = document.getElementById('todoWrap');
   wrap.innerHTML = '';
-  tonightTodos.forEach(item => {
-    const b = document.createElement('button');
-    b.textContent = item;
-    b.onclick = () => {
-      if (item === 'Other') {
-        // 進入手動輸入
-        selectedSubCategory = 'Other';
-        gotoInput();
-      } else {
-        logTodo(item);
-      }
-    };
-    wrap.appendChild(b);
+  tonightTodos.forEach(item=>{
+    const row = document.createElement('div');
+    row.className = 'todo-item';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = 'td_' + item.id;
+
+    const lab = document.createElement('label');
+    lab.htmlFor = cb.id;
+    lab.textContent = item.label;
+
+    row.appendChild(cb);
+    row.appendChild(lab);
+
+    if (item.hasInput){
+      const txt = document.createElement('input');
+      txt.type = 'text';
+      txt.id = 'td_other_text';
+      txt.placeholder = '輸入其他事項…';
+      row.appendChild(txt);
+    }
+
+    wrap.appendChild(row);
   });
   document.getElementById('pageTodo').classList.add('active');
 }
@@ -271,12 +311,8 @@ function gotoTodo() {
 /** ---------- Note building & saving ---------- **/
 function buildEntry(text) {
   const date = fmtDate(), time = fmtTime();
-  const baseTags = [`#${selectedCategory.toLowerCase()}`];
-  if (selectedSubCategory) baseTags.push(`#${selectedSubCategory.toLowerCase()}`);
-  if (selectedCategory === 'Relationship' && selectedRelTag) {
-    baseTags.push(selectedRelTag.toLowerCase()); // 已含 # 前綴
-  }
-  const tags = baseTags.join(' ');
+  const tags = [`#${selectedCategory.toLowerCase()}`, selectedSubCategory ? `#${selectedSubCategory.toLowerCase()}` : '']
+    .filter(Boolean).join(' ');
   return `[${date}\n${time} ｜ ${text} ${tags}]`;
 }
 
@@ -294,8 +330,16 @@ function sendToShortcuts(encoded, isFinance) {
 /** Generic free-text save **/
 function saveToNotes() {
   let txt = document.getElementById('content').value.trim();
-  if (!txt) { alert("Please enter something!"); return; }
+
+  // 允許只有 quick tags（如 #eat/#desire）也能存
+  if (!txt) {
+    alert("Please enter something or use quick tags!");
+    return;
+  }
+
+  // 修正常見錯誤，例如 #review]
   txt = txt.replace(/#review\]/gi, '#review');
+
   const note = buildEntry(txt);
   sendToShortcuts(encodeURIComponent(note), selectedCategory === 'Finance');
 }
@@ -307,18 +351,6 @@ function logPomodoro() {
   goHome();
 }
 
-/** Tonight ToDo quick log **/
-function logTodo(itemText) {
-  const prevCat = selectedCategory, prevSub = selectedSubCategory;
-  selectedCategory = 'Tonight ToDoList';
-  selectedSubCategory = ''; // 不需要子類別
-  const note = buildEntry(itemText);
-  sendToShortcuts(encodeURIComponent(note), false);
-  // 還原（以免影響後續操作）
-  selectedCategory = prevCat; selectedSubCategory = prevSub;
-  goHome();
-}
-
 /** Health structured save **/
 function saveHealth() {
   const hours = parseInt((document.getElementById('sleepHours').value || '').trim(), 10);
@@ -326,17 +358,57 @@ function saveHealth() {
   const energy = parseInt(document.getElementById('energy').value, 10);
   const notes = (document.getElementById('healthNotes').value || '').trim();
 
-  if (isNaN(hours) || hours < 4 || hours > 12) { alert('Please select sleeping hours between 4 and 12.'); return; }
-  if (!onBed) { alert('Please enter on-bed time.'); return; }
-  if (isNaN(energy) || energy < 1 || energy > 10) { alert('Energy must be 1–10.'); return; }
+  if (isNaN(hours) || hours < 4 || hours > 12) {
+    alert('Please select sleeping hours between 4 and 12.');
+    return;
+  }
+  if (!onBed) {
+    alert('Please enter on-bed time.');
+    return;
+  }
+  if (isNaN(energy) || energy < 1 || energy > 10) {
+    alert('Energy must be 1–10.');
+    return;
+  }
 
   const onBedHuman = toHumanTime(onBed);
-  const pieces = [`sleep=${hours}h`,`onBed=${onBedHuman}`,`energy=${energy}/10`];
+  const pieces = [
+    `sleep=${hours}h`,
+    `onBed=${onBedHuman}`,
+    `energy=${energy}/10`
+  ];
   if (notes) pieces.push(`notes=${sanitizeInline(notes)}`);
 
   const text = pieces.join(' | ');
   selectedCategory = 'Health';
   selectedSubCategory = '';
+  const note = buildEntry(text);
+  sendToShortcuts(encodeURIComponent(note), false);
+}
+
+/** Tonight ToDoList save (multi-select) **/
+function saveTonightTodo(){
+  const chosen = [];
+  tonightTodos.forEach(item=>{
+    const cb = document.getElementById('td_'+item.id);
+    if (cb && cb.checked){
+      if (item.id === 'other'){
+        const ot = (document.getElementById('td_other_text')?.value || '').trim();
+        chosen.push( ot ? `other:${ot}` : 'other' );
+      } else {
+        chosen.push(item.label);
+      }
+    }
+  });
+
+  if (chosen.length === 0){
+    alert('請至少選擇一項。');
+    return;
+  }
+
+  selectedCategory = 'TonightToDoList';
+  selectedSubCategory = '';
+  const text = 'ToDo: ' + chosen.join(', ');
   const note = buildEntry(text);
   sendToShortcuts(encodeURIComponent(note), false);
 }
@@ -349,6 +421,7 @@ function toHumanTime(hhmm) {
   h = h % 12 || 12;
   return `${h}:${mStr}${ampm}`;
 }
+
 function sanitizeInline(s) {
   return s.replace(/\n+/g, ' ').replace(/\]/g, ')');
 }
