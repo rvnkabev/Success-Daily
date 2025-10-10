@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <title>Success Diary</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body{
       font-family: Arial, sans-serif;
       padding: 1em;
       background: #f9f9f9;
-      font-size: 280%;
+      font-size: 240%;
       text-align: center;
     }
     .page{display:none;}
@@ -25,18 +26,49 @@
       font-size: 90%;
       margin: 0.6em 0;
     }
-    .row{
-      display:flex;
-      gap:0.6em;
-      justify-content:center;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    .row > * { flex: 1 1 240px; max-width: 480px; }
+    .row{ display:flex; gap:0.6em; justify-content:center; align-items:center; flex-wrap:wrap; }
+    .row > * { flex:1 1 240px; max-width:480px; }
     .hint{font-size: 60%; color:#666; margin-top:-0.4em}
     .small{font-size: 70%;}
-    .group{margin:0.6em 0}
-    .chk{display:flex; align-items:center; gap:0.6em; justify-content:center;}
+
+    /* ===== Mobile-friendly ToDo cards ===== */
+    .todo-wrap { text-align:left; max-width:640px; margin:0 auto; }
+    .toolbar { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0.2em 0 0.6em; }
+    .toolbar button { padding: 0.4em 0.8em; font-size: 80%; }
+
+    .todo-input { display:flex; gap:8px; align-items:center; justify-content:center; }
+    .todo-input input { flex: 1 1 auto; max-width:none; }
+    .todo-input button { padding:0.4em 0.8em; font-size: 90%; }
+
+    .cards { display:grid; grid-template-columns: 1fr; gap:12px; }
+    @media (min-width:420px){ .cards { grid-template-columns: 1fr 1fr; } }
+
+    .card {
+      display:flex; align-items:center; gap:12px;
+      background:#fff; border-radius:14px; border:1px solid #ddd;
+      padding:14px 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      min-height:56px;
+    }
+    .card input[type="checkbox"] { width:26px; height:26px; }
+    .card .text { font-size: 80%; line-height:1.2; }
+    .chip { display:inline-block; border:1px solid #ccc; border-radius:999px; padding:0.05em 0.5em; font-size:65%; margin-left:6px; color:#666; }
+
+    /* Selected state */
+    .card.selected { border-color:#7aa2ff; box-shadow:0 0 0 3px rgba(122,162,255,0.2); }
+
+    /* Sticky bottom bar */
+    .sticky-bar {
+      position: sticky; bottom:0; left:0; right:0;
+      background: #f9f9f9;
+      padding: 8px 6px 2px;
+      margin-top: 8px;
+    }
+    .sticky-actions { display:flex; gap:10px; justify-content:center; }
+    .primary { background:#7aa2ff; color:#fff; border:none; border-radius:10px; padding:0.5em 0.9em; }
+    .success { background:#25d0a6; color:#fff; border:none; border-radius:10px; padding:0.5em 0.9em; }
+
+    /* Sub/rel pages */
     .pill{display:inline-block; border:1px solid #ccc; border-radius:999px; padding:0.2em 0.6em; margin:0.2em; font-size:80%;}
   </style>
 </head>
@@ -109,34 +141,48 @@
   <button onclick="goHome()">Cancel</button>
 </div>
 
-<!-- 5 - Tonight ToDoList (multi-select) -->
+<!-- 5 - Tonight ToDoList (MOBILE-FIRST) -->
 <div class="page" id="pageTodo">
   <h2>Tonight ToDoList</h2>
-  <div class="group">
-    <label class="chk"><input type="checkbox" value="買雞" class="todoItem" /> 買雞</label>
-    <label class="chk"><input type="checkbox" value="整雞水（1.5hr）" class="todoItem" /> 整雞水（1.5hr）</label>
-    <label class="chk"><input type="checkbox" value="整雞水（30mins）" class="todoItem" /> 整雞水（30mins）</label>
-    <label class="chk"><input type="checkbox" value="運動" class="todoItem" /> 運動</label>
-    <label class="chk"><input type="checkbox" value="游水" class="todoItem" /> 游水</label>
-    <label class="chk"><input type="checkbox" value="Other" class="todoItem" /> Other</label>
+  <div class="small" id="todoDateTime"></div>
+
+  <div class="todo-wrap">
+    <div class="toolbar">
+      <button onclick="selectAllTodos()">全選</button>
+      <button onclick="clearAllTodos()">清空</button>
+    </div>
+
+    <div class="todo-input">
+      <input id="todoNew" type="text" placeholder="新增項目…（如：買菜、洗衣）" />
+      <button onclick="addTodoFromInput()">＋</button>
+    </div>
+
+    <div class="cards" id="todoCards">
+      <!-- 預設常用項 -->
+    </div>
+
+    <div class="sticky-bar">
+      <div class="sticky-actions">
+        <button class="primary" onclick="saveTonight('planned')">儲存為 Planned</button>
+        <button class="success" onclick="saveTonight('done')">儲存為 Done</button>
+      </div>
+      <div class="small" style="margin-top:4px;">可多選；儲存會寫入 #tonighttodolist 與 status</div>
+    </div>
   </div>
-  <input type="text" id="todoOther" placeholder="If Other, describe..." />
-  <div class="small">可選擇多於一項</div>
-  <button onclick="saveTonight()">Save</button>
-  <button onclick="goHome()">Cancel</button>
+  <button style="margin-top:10px;" onclick="goHome()">Cancel</button>
 </div>
 
 <script>
 /** ---------- Config ---------- **/
 const categoryMap = {
   Health: [],
-  // Removed: 服從, 忍, risk
+  // MentalHealth 移除：服從、忍、risk
   MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "Other"],
   Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
   Finance: [],
   Work: ["A12", "MEWP", "Communication", "Other"],
   Pomodoro: ["English", "Finance", "Reading", "Review"],
-  TonightToDoList: [],  // goes to custom page
+  TonightToDoList: [],  // custom page
   Other: []
 };
 
@@ -156,7 +202,6 @@ const fmtTime = () => {
   h = h % 12 || 12;
   return `${h}:${m}${am}`;
 };
-
 const fmtDate = () => {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
@@ -177,13 +222,11 @@ function selectCategory(cat) {
   if (cat === 'TonightToDoList') return gotoTodo();
 
   const subs = categoryMap[cat] || [];
-
   if (cat === 'Pomodoro') {
     buildSubButtons(subs);
     hidePages(); document.getElementById('pageSub').classList.add('active');
     return;
   }
-
   if (subs.length > 0) {
     buildSubButtons(subs);
     hidePages(); document.getElementById('pageSub').classList.add('active');
@@ -206,14 +249,11 @@ function buildSubButtons(arr) {
 
 function selectSubCategory(sub) {
   selectedSubCategory = sub;
-
-  // Relationship: if selecting a person (including Other), show second tag layer (#eat / #desire)
   if (selectedCategory === 'Relationship' && relationshipPersons.has(sub)) {
     selectedRelPerson = sub;
     showRelSecondTags(sub);
     return;
   }
-
   if (selectedCategory === 'Pomodoro') {
     logPomodoro();
   } else {
@@ -231,9 +271,8 @@ function showRelSecondTags(person) {
     btn.textContent = t;
     btn.onclick = () => {
       selectedRelSecondTag = t;
-      // Compose subcategory like "Person/#eat"
       selectedSubCategory = `${person}/${t}`;
-      gotoInput(/*showAutoHint=*/true);
+      gotoInput(true);
     };
     wrap.appendChild(btn);
   });
@@ -261,13 +300,66 @@ function gotoHealth() {
   document.getElementById('pageHealth').classList.add('active');
 }
 
-/** ---------- Tonight ToDoList page ---------- **/
+/** ---------- Tonight ToDoList (mobile-first) ---------- **/
+const DEFAULT_TODOS = [
+  { text: "買雞" },
+  { text: "整雞水", tag:"1.5hr" },
+  { text: "整雞水", tag:"30mins" },
+  { text: "運動" },
+  { text: "游水" }
+];
+
 function gotoTodo() {
   hidePages();
-  document.getElementById('todoOther').value = '';
-  // Clear previous checks
-  document.querySelectorAll('.todoItem').forEach(ch => ch.checked = false);
+  document.getElementById('todoDateTime').textContent = `${fmtDate()} ${fmtTime()}`;
+  const box = document.getElementById('todoCards');
+  box.innerHTML = '';
+  DEFAULT_TODOS.forEach(addTodoCard);
+  document.getElementById('todoNew').value = '';
   document.getElementById('pageTodo').classList.add('active');
+}
+
+function addTodoCard(item) {
+  const box = document.getElementById('todoCards');
+  const id = 't_' + Math.random().toString(36).slice(2,8);
+  const label = document.createElement('label');
+  label.className = 'card';
+  label.innerHTML = `
+    <input type="checkbox" id="${id}">
+    <div class="text">${escapeHTML(item.text)}${item.tag?` <span class="chip">${escapeHTML(item.tag)}</span>`:''}</div>
+  `;
+  // Tap on the card toggles checkbox & visual state
+  label.addEventListener('click', (e) => {
+    if (e.target.tagName.toLowerCase() !== 'input') {
+      const cb = label.querySelector('input');
+      cb.checked = !cb.checked;
+      label.classList.toggle('selected', cb.checked);
+      e.preventDefault();
+    } else {
+      label.classList.toggle('selected', e.target.checked);
+    }
+  });
+  box.appendChild(label);
+}
+
+function addTodoFromInput() {
+  const v = (document.getElementById('todoNew').value || '').trim();
+  if (!v) return;
+  addTodoCard({text: v});
+  document.getElementById('todoNew').value = '';
+}
+
+function selectAllTodos() {
+  document.querySelectorAll('#todoCards .card input[type="checkbox"]').forEach(cb => {
+    cb.checked = true;
+    cb.closest('.card').classList.add('selected');
+  });
+}
+function clearAllTodos() {
+  document.querySelectorAll('#todoCards .card input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+    cb.closest('.card').classList.remove('selected');
+  });
 }
 
 /** ---------- Note building & saving ---------- **/
@@ -296,7 +388,6 @@ function saveToNotes() {
   let txt = document.getElementById('content').value.trim();
   if (!txt) { alert("Please enter something!"); return; }
   txt = txt.replace(/#review\]/gi, '#review');
-
   const note = buildEntry(txt);
   sendToShortcuts(encodeURIComponent(note), selectedCategory === 'Finance');
 }
@@ -320,11 +411,7 @@ function saveHealth() {
   if (isNaN(energy) || energy < 1 || energy > 10) { alert('Energy must be 1–10.'); return; }
 
   const onBedHuman = toHumanTime(onBed);
-  const pieces = [
-    `sleep=${hours}h`,
-    `onBed=${onBedHuman}`,
-    `energy=${energy}/10`
-  ];
+  const pieces = [`sleep=${hours}h`,`onBed=${onBedHuman}`,`energy=${energy}/10`];
   if (notes) pieces.push(`notes=${sanitizeInline(notes)}`);
 
   const text = pieces.join(' | ');
@@ -334,21 +421,18 @@ function saveHealth() {
   sendToShortcuts(encodeURIComponent(note), false);
 }
 
-/** Tonight ToDoList save (multi-select) **/
-function saveTonight() {
-  const selected = Array.from(document.querySelectorAll('.todoItem'))
-    .filter(ch => ch.checked)
-    .map(ch => ch.value);
+/** Tonight save */
+function saveTonight(state) {
+  const picked = Array.from(document.querySelectorAll('#todoCards .card'))
+    .filter(card => card.querySelector('input').checked)
+    .map(card => card.querySelector('.text').innerText.trim());
 
-  const other = (document.getElementById('todoOther').value || '').trim();
-  if (other) selected.push(sanitizeInline(other));
-
-  if (selected.length === 0) { alert('請至少選擇一項或填寫 Other'); return; }
+  if (picked.length === 0) { alert('請至少選擇一項或新增項目'); return; }
 
   selectedCategory = 'TonightToDoList';
   selectedSubCategory = '';
-  const text = `Tonight: ${selected.join(', ')}`;
-  const note = buildEntry(text + ' | status=planned');
+  const text = `Tonight: ${picked.join(', ')} | status=${state}`;
+  const note = buildEntry(text);
   sendToShortcuts(encodeURIComponent(note), false);
 }
 
@@ -360,10 +444,8 @@ function toHumanTime(hhmm) {
   h = h % 12 || 12;
   return `${h}:${mStr}${ampm}`;
 }
-
-function sanitizeInline(s) {
-  return s.replace(/\n+/g, ' ').replace(/\]/g, ')');
-}
+function sanitizeInline(s) { return s.replace(/\n+/g, ' ').replace(/\]/g, ')'); }
+function escapeHTML(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 </script>
 </body>
 </html>
