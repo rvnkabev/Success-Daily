@@ -47,16 +47,24 @@
   <button onclick="selectCategory('Finance')">Finance</button>
   <button onclick="selectCategory('Work')">Work</button>
   <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
+  <button onclick="selectCategory('Tonight ToDoList')">Tonight&nbsp;ToDoList</button>
   <button onclick="selectCategory('Other')">Other</button>
 </div>
 
-<!-- 2 - Sub-categories (for non-Health / non-Pomodoro when needed) -->
+<!-- 2 - Sub-categories -->
 <div class="page" id="pageSub">
   <h2 id="subCategoryTitle"></h2>
   <div id="subButtons"></div>
 </div>
 
-<!-- 3 - Free-text input (generic logger) -->
+<!-- 2.5 - Relationship tag layer (#eat / #desire) -->
+<div class="page" id="pageRelTags">
+  <h2 id="relTagTitle">Relationship Tag</h2>
+  <div id="relTagButtons"></div>
+  <div class="small" style="margin-top:0.6em">（可選 #eat、#desire，或 Skip 跳過）</div>
+</div>
+
+<!-- 3 - Free-text input -->
 <div class="page" id="pageInput">
   <h2 id="selectedCategoryLabel"></h2>
   <p id="currentTime"></p>
@@ -69,67 +77,67 @@
   <h2>Health — Daily Check-in</h2>
   <p id="healthTime" class="small"></p>
   <div class="row">
-    <!-- Sleeping hours: dropdown 4–12, default 7 -->
     <div style="flex:1 1 240px; max-width:480px;">
       <label for="sleepHours" class="small">Sleeping hours</label>
       <select id="sleepHours">
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="7" selected>7</option>
-        <option value="8">8</option>
-        <option value="9">9</option>
-        <option value="10">10</option>
-        <option value="11">11</option>
-        <option value="12">12</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+        <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
+        <option value="10">10</option><option value="11">11</option><option value="12">12</option>
       </select>
     </div>
-
-    <!-- On-bed time: default 21:30 -->
     <div style="flex:1 1 240px; max-width:480px;">
       <label for="onBedTime" class="small">On bed time</label>
       <input type="time" id="onBedTime" />
       <div class="hint">Default 9:30pm</div>
     </div>
-
-    <!-- Energy: dropdown 1–10, default 7 -->
     <div style="flex:1 1 240px; max-width:480px;">
       <label for="energy" class="small">Energy (1–10)</label>
       <select id="energy">
-        <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="7" selected>7</option>
-        <option value="8">8</option>
-        <option value="9">9</option>
-        <option value="10">10</option>
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+        <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
       </select>
     </div>
   </div>
-
   <textarea id="healthNotes" placeholder="Optional notes (diet, symptoms, meds, etc.)"></textarea>
   <button onclick="saveHealth()">Save</button>
+  <button onclick="goHome()">Cancel</button>
+</div>
+
+<!-- 5 - Tonight ToDoList -->
+<div class="page" id="pageTodo">
+  <h2>Tonight ToDoList</h2>
+  <div id="todoButtons"></div>
   <button onclick="goHome()">Cancel</button>
 </div>
 
 <script>
 /** ---------- Config ---------- **/
 const categoryMap = {
-  // Health uses its own dedicated page (no subcategories)
   Health: [],
-  MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "服從", "忍", "risk", "Other"],
+  // 移除 服從 / 忍 / risk
+  MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "Other"],
   Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
   Finance: [],
   Work: ["A12", "MEWP", "Communication", "Other"],
   Pomodoro: ["English", "Finance", "Reading", "Review"],
+  "Tonight ToDoList": [],
   Other: []
 };
 
+// Tonight ToDoList 項目
+const tonightTodos = [
+  "買雞",
+  "整雞水（1.5hr）",
+  "整雞水（30mins）",
+  "運動",
+  "游水",
+  "Other"
+];
+
 let selectedCategory = '';
 let selectedSubCategory = '';
+let selectedRelTag = ''; // 只用於 Relationship：#eat / #desire
 
 /** ---------- Time helpers ---------- **/
 const fmtTime = () => {
@@ -139,7 +147,6 @@ const fmtTime = () => {
   h = h % 12 || 12;
   return `${h}:${m}${am}`;
 };
-
 const fmtDate = () => {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
@@ -153,24 +160,20 @@ const goHome = () => { hidePages(); document.getElementById('page1').classList.a
 function selectCategory(cat) {
   selectedCategory = cat;
   selectedSubCategory = '';
+  selectedRelTag = '';
 
-  // Health goes to custom form
-  if (cat === 'Health') { return gotoHealth(); }
+  if (cat === 'Health') return gotoHealth();
+  if (cat === 'Tonight ToDoList') return gotoTodo();
 
-  // Pomodoro has subcats but logs immediately with 25mins notes per sub select
   const subs = categoryMap[cat] || [];
   if (cat === 'Pomodoro') {
     buildSubButtons(subs);
-    hidePages();
-    document.getElementById('pageSub').classList.add('active');
+    hidePages(); document.getElementById('pageSub').classList.add('active');
     return;
   }
-
-  // Other categories: if subs exist, show; else go input
   if (subs.length > 0) {
     buildSubButtons(subs);
-    hidePages();
-    document.getElementById('pageSub').classList.add('active');
+    hidePages(); document.getElementById('pageSub').classList.add('active');
   } else {
     gotoInput();
   }
@@ -192,11 +195,37 @@ function selectSubCategory(sub) {
   selectedSubCategory = sub;
   if (selectedCategory === 'Pomodoro') {
     logPomodoro();
+  } else if (selectedCategory === 'Relationship') {
+    // Relationship 需要再選 #eat / #desire
+    showRelTags();
   } else {
     gotoInput();
   }
 }
 
+/** ---------- Relationship tag layer ---------- **/
+function showRelTags() {
+  hidePages();
+  const title = document.getElementById('relTagTitle');
+  const btns = document.getElementById('relTagButtons');
+  title.textContent = `Relationship — ${selectedSubCategory}`;
+  btns.innerHTML = '';
+
+  const options = ['#eat', '#desire', 'Skip'];
+  options.forEach(opt => {
+    const b = document.createElement('button');
+    b.textContent = opt;
+    b.onclick = () => {
+      selectedRelTag = (opt === 'Skip') ? '' : opt;
+      gotoInput();
+    };
+    btns.appendChild(b);
+  });
+
+  document.getElementById('pageRelTags').classList.add('active');
+}
+
+/** ---------- Input page ---------- **/
 function gotoInput() {
   hidePages();
   const label = selectedSubCategory ? `${selectedCategory}/${selectedSubCategory}` : selectedCategory;
@@ -209,20 +238,45 @@ function gotoInput() {
 /** ---------- Health page ---------- **/
 function gotoHealth() {
   hidePages();
-  // defaults
-  document.getElementById('sleepHours').value = '7';   // default 7 hours
-  document.getElementById('onBedTime').value = '21:30';// default 9:30pm
-  document.getElementById('energy').value = '7';       // default energy 7
+  document.getElementById('sleepHours').value = '7';
+  document.getElementById('onBedTime').value = '21:30';
+  document.getElementById('energy').value = '7';
   document.getElementById('healthNotes').value = '';
   document.getElementById('healthTime').textContent = `${fmtDate()} ${fmtTime()}`;
   document.getElementById('pageHealth').classList.add('active');
 }
 
+/** ---------- Tonight ToDoList page ---------- **/
+function gotoTodo() {
+  hidePages();
+  const wrap = document.getElementById('todoButtons');
+  wrap.innerHTML = '';
+  tonightTodos.forEach(item => {
+    const b = document.createElement('button');
+    b.textContent = item;
+    b.onclick = () => {
+      if (item === 'Other') {
+        // 進入手動輸入
+        selectedSubCategory = 'Other';
+        gotoInput();
+      } else {
+        logTodo(item);
+      }
+    };
+    wrap.appendChild(b);
+  });
+  document.getElementById('pageTodo').classList.add('active');
+}
+
 /** ---------- Note building & saving ---------- **/
 function buildEntry(text) {
   const date = fmtDate(), time = fmtTime();
-  const tags = [`#${selectedCategory.toLowerCase()}`, selectedSubCategory ? `#${selectedSubCategory.toLowerCase()}` : '']
-    .filter(Boolean).join(' ');
+  const baseTags = [`#${selectedCategory.toLowerCase()}`];
+  if (selectedSubCategory) baseTags.push(`#${selectedSubCategory.toLowerCase()}`);
+  if (selectedCategory === 'Relationship' && selectedRelTag) {
+    baseTags.push(selectedRelTag.toLowerCase()); // 已含 # 前綴
+  }
+  const tags = baseTags.join(' ');
   return `[${date}\n${time} ｜ ${text} ${tags}]`;
 }
 
@@ -241,10 +295,7 @@ function sendToShortcuts(encoded, isFinance) {
 function saveToNotes() {
   let txt = document.getElementById('content').value.trim();
   if (!txt) { alert("Please enter something!"); return; }
-
-  // 修正常見錯誤，例如 #review]
   txt = txt.replace(/#review\]/gi, '#review');
-
   const note = buildEntry(txt);
   sendToShortcuts(encodeURIComponent(note), selectedCategory === 'Finance');
 }
@@ -256,6 +307,18 @@ function logPomodoro() {
   goHome();
 }
 
+/** Tonight ToDo quick log **/
+function logTodo(itemText) {
+  const prevCat = selectedCategory, prevSub = selectedSubCategory;
+  selectedCategory = 'Tonight ToDoList';
+  selectedSubCategory = ''; // 不需要子類別
+  const note = buildEntry(itemText);
+  sendToShortcuts(encodeURIComponent(note), false);
+  // 還原（以免影響後續操作）
+  selectedCategory = prevCat; selectedSubCategory = prevSub;
+  goHome();
+}
+
 /** Health structured save **/
 function saveHealth() {
   const hours = parseInt((document.getElementById('sleepHours').value || '').trim(), 10);
@@ -263,48 +326,30 @@ function saveHealth() {
   const energy = parseInt(document.getElementById('energy').value, 10);
   const notes = (document.getElementById('healthNotes').value || '').trim();
 
-  // Validation adjusted to dropdown ranges
-  if (isNaN(hours) || hours < 4 || hours > 12) {
-    alert('Please select sleeping hours between 4 and 12.');
-    return;
-  }
-  if (!onBed) {
-    alert('Please enter on-bed time.');
-    return;
-  }
-  if (isNaN(energy) || energy < 1 || energy > 10) {
-    alert('Energy must be 1–10.');
-    return;
-  }
+  if (isNaN(hours) || hours < 4 || hours > 12) { alert('Please select sleeping hours between 4 and 12.'); return; }
+  if (!onBed) { alert('Please enter on-bed time.'); return; }
+  if (isNaN(energy) || energy < 1 || energy > 10) { alert('Energy must be 1–10.'); return; }
 
-  // Compose a compact, structured line
   const onBedHuman = toHumanTime(onBed);
-  const pieces = [
-    `sleep=${hours}h`,
-    `onBed=${onBedHuman}`,
-    `energy=${energy}/10`
-  ];
+  const pieces = [`sleep=${hours}h`,`onBed=${onBedHuman}`,`energy=${energy}/10`];
   if (notes) pieces.push(`notes=${sanitizeInline(notes)}`);
 
   const text = pieces.join(' | ');
   selectedCategory = 'Health';
-  selectedSubCategory = ''; // Health has no subcat now
+  selectedSubCategory = '';
   const note = buildEntry(text);
   sendToShortcuts(encodeURIComponent(note), false);
 }
 
 /** helpers **/
 function toHumanTime(hhmm) {
-  // "23:15" -> "11:15pm"
   const [hStr, mStr] = hhmm.split(':');
   let h = parseInt(hStr, 10);
   const ampm = h >= 12 ? 'pm' : 'am';
   h = h % 12 || 12;
   return `${h}:${mStr}${ampm}`;
 }
-
 function sanitizeInline(s) {
-  // keep single-line, remove closing bracket to avoid breaking the note wrapper
   return s.replace(/\n+/g, ' ').replace(/\]/g, ')');
 }
 </script>
