@@ -70,14 +70,6 @@
 
     /* Sub/rel pages */
     .pill{display:inline-block; border:1px solid #ccc; border-radius:999px; padding:0.2em 0.6em; margin:0.2em; font-size:80%;}
-
-    /* Dopamine Action page buttons */
-    .da-grid{display:grid; gap:10px; grid-template-columns: 1fr; max-width:680px; margin:0 auto;}
-    @media (min-width:520px){ .da-grid{grid-template-columns: 1fr 1fr;} }
-    .da-btn{
-      border:none; border-radius:12px; padding:0.7em 0.9em; font-size:90%;
-      background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.06); border:1px solid #ddd;
-    }
   </style>
 </head>
 <body>
@@ -107,17 +99,18 @@
   <div id="relTagButtons"></div>
 </div>
 
-<!-- NEW: Dopamine Action page -->
-<div class="page" id="pageDA">
+<!-- NEW: Dopamine Action page (MentalHealth) -->
+<div class="page" id="pageDopa">
   <h2>MentalHealth — Dopamine Action</h2>
-  <p class="small" id="daTime"></p>
-  <div class="da-grid">
-    <button class="da-btn" onclick="recordDA('Low')">Low Dopamine<br><span class="small">記錄 [[Low Dopamine]]</span></button>
-    <button class="da-btn" onclick="recordDA('Middle')">Middle Dopamine<br><span class="small">記錄 [[Middle Dopamine]]</span></button>
-    <button class="da-btn" onclick="recordDA('High')">High Dopamine<br><span class="small">記錄 [[High Dopamine]]</span></button>
-    <button class="da-btn" onclick="recordDA('Chaos')">Chaos<br><span class="small">記錄 [[Chaos]]</span></button>
+  <div class="row" style="justify-content:center">
+    <button class="pill" onclick="logDopamineAction('[[Low Dopamine]]')">Low Dopamine</button>
+    <button class="pill" onclick="logDopamineAction('[[Middle Dopamine]]')">Middle Dopamine</button>
+    <button class="pill" onclick="logDopamineAction('[[High Dopamine]]')">High Dopamine</button>
+    <button class="pill" onclick="logDopamineAction('[[Chaos]]')">Chaos</button>
+    <button class="pill" onclick="logDopamineAction('[[。。。]]')">以上</button>
   </div>
-  <button style="margin-top:12px;" onclick="goHome()">Cancel</button>
+  <div class="small hint">點擊即記錄，不在頁面顯示 [[...]] 內容</div>
+  <button style="margin-top:10px;" onclick="goHome()">Cancel</button>
 </div>
 
 <!-- 3 - Free-text input -->
@@ -268,6 +261,12 @@ function buildSubButtons(arr) {
 
 function selectSubCategory(sub) {
   selectedSubCategory = sub;
+
+  // --- MentalHealth special: Dopamine Action page ---
+  if (selectedCategory === 'MentalHealth' && sub === 'DopamineAction') {
+    return gotoDopamineAction();
+  }
+
   if (selectedCategory === 'Relationship' && relationshipPersons.has(sub)) {
     selectedRelPerson = sub;
     showRelSecondTags(sub);
@@ -275,14 +274,9 @@ function selectSubCategory(sub) {
   }
   if (selectedCategory === 'Pomodoro') {
     logPomodoro();
-    return;
+  } else {
+    gotoInput();
   }
-  // NEW: route to Dopamine Action page
-  if (selectedCategory === 'MentalHealth' && sub === 'DopamineAction') {
-    gotoDopamine();
-    return;
-  }
-  gotoInput();
 }
 
 function showRelSecondTags(person) {
@@ -322,25 +316,6 @@ function gotoHealth() {
   document.getElementById('healthNotes').value = '';
   document.getElementById('healthTime').textContent = `${fmtDate()} ${fmtTime()}`;
   document.getElementById('pageHealth').classList.add('active');
-}
-
-/** ---------- NEW: Dopamine Action ---------- **/
-function gotoDopamine() {
-  hidePages();
-  document.getElementById('daTime').textContent = `${fmtDate()} ${fmtTime()}`;
-  document.getElementById('pageDA').classList.add('active');
-}
-
-function recordDA(level) {
-  // level: 'Low' | 'Middle' | 'High' | 'Chaos'
-  selectedCategory = 'MentalHealth';
-  selectedSubCategory = `DopamineAction/${level.toLowerCase()}`;
-
-  // note body (double-bracket as requested)
-  const body = level === 'Chaos' ? '[[Chaos]]' : `[[${level} Dopamine]]`;
-  const note = buildEntry(body);
-  sendToShortcuts(encodeURIComponent(note), false);
-  goHome();
 }
 
 /** ---------- Tonight ToDoList (mobile-first) ---------- **/
@@ -488,6 +463,20 @@ function toHumanTime(hhmm) {
 }
 function sanitizeInline(s) { return s.replace(/\n+/g, ' ').replace(/\]/g, ')'); }
 function escapeHTML(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/** ---------- Dopamine Action (MentalHealth) ---------- **/
+function gotoDopamineAction() {
+  hidePages();
+  document.getElementById('pageDopa').classList.add('active');
+}
+function logDopamineAction(token) {
+  // 不在頁面顯示 [[...]]，直接背景記錄
+  selectedCategory = 'MentalHealth';
+  selectedSubCategory = 'DopamineAction';
+  const note = buildEntry(token);
+  sendToShortcuts(encodeURIComponent(note), false);
+  goHome();
+}
 </script>
 </body>
 </html>
