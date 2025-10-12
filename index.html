@@ -70,6 +70,14 @@
 
     /* Sub/rel pages */
     .pill{display:inline-block; border:1px solid #ccc; border-radius:999px; padding:0.2em 0.6em; margin:0.2em; font-size:80%;}
+
+    /* Dopamine Action page buttons */
+    .da-grid{display:grid; gap:10px; grid-template-columns: 1fr; max-width:680px; margin:0 auto;}
+    @media (min-width:520px){ .da-grid{grid-template-columns: 1fr 1fr;} }
+    .da-btn{
+      border:none; border-radius:12px; padding:0.7em 0.9em; font-size:90%;
+      background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.06); border:1px solid #ddd;
+    }
   </style>
 </head>
 <body>
@@ -97,6 +105,19 @@
 <div class="page" id="pageRelTags">
   <h2 id="relTagTitle"></h2>
   <div id="relTagButtons"></div>
+</div>
+
+<!-- NEW: Dopamine Action page -->
+<div class="page" id="pageDA">
+  <h2>MentalHealth — Dopamine Action</h2>
+  <p class="small" id="daTime"></p>
+  <div class="da-grid">
+    <button class="da-btn" onclick="recordDA('Low')">Low Dopamine<br><span class="small">記錄 [[Low Dopamine]]</span></button>
+    <button class="da-btn" onclick="recordDA('Middle')">Middle Dopamine<br><span class="small">記錄 [[Middle Dopamine]]</span></button>
+    <button class="da-btn" onclick="recordDA('High')">High Dopamine<br><span class="small">記錄 [[High Dopamine]]</span></button>
+    <button class="da-btn" onclick="recordDA('Chaos')">Chaos<br><span class="small">記錄 [[Chaos]]</span></button>
+  </div>
+  <button style="margin-top:12px;" onclick="goHome()">Cancel</button>
 </div>
 
 <!-- 3 - Free-text input -->
@@ -157,9 +178,7 @@
       <button onclick="addTodoFromInput()">＋</button>
     </div>
 
-    <div class="cards" id="todoCards">
-      <!-- 預設常用項 -->
-    </div>
+    <div class="cards" id="todoCards"></div>
 
     <div class="sticky-bar">
       <div class="sticky-actions">
@@ -177,7 +196,7 @@
 const categoryMap = {
   Health: [],
   // MentalHealth 移除：服從、忍、risk
-  MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "Other"],
+  MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "DopamineAction", "Other"],
   Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
   Finance: [],
   Work: ["A12", "MEWP", "Communication", "Other"],
@@ -256,9 +275,14 @@ function selectSubCategory(sub) {
   }
   if (selectedCategory === 'Pomodoro') {
     logPomodoro();
-  } else {
-    gotoInput();
+    return;
   }
+  // NEW: route to Dopamine Action page
+  if (selectedCategory === 'MentalHealth' && sub === 'DopamineAction') {
+    gotoDopamine();
+    return;
+  }
+  gotoInput();
 }
 
 function showRelSecondTags(person) {
@@ -300,6 +324,25 @@ function gotoHealth() {
   document.getElementById('pageHealth').classList.add('active');
 }
 
+/** ---------- NEW: Dopamine Action ---------- **/
+function gotoDopamine() {
+  hidePages();
+  document.getElementById('daTime').textContent = `${fmtDate()} ${fmtTime()}`;
+  document.getElementById('pageDA').classList.add('active');
+}
+
+function recordDA(level) {
+  // level: 'Low' | 'Middle' | 'High' | 'Chaos'
+  selectedCategory = 'MentalHealth';
+  selectedSubCategory = `DopamineAction/${level.toLowerCase()}`;
+
+  // note body (double-bracket as requested)
+  const body = level === 'Chaos' ? '[[Chaos]]' : `[[${level} Dopamine]]`;
+  const note = buildEntry(body);
+  sendToShortcuts(encodeURIComponent(note), false);
+  goHome();
+}
+
 /** ---------- Tonight ToDoList (mobile-first) ---------- **/
 const DEFAULT_TODOS = [
   { text: "買雞" },
@@ -328,7 +371,6 @@ function addTodoCard(item) {
     <input type="checkbox" id="${id}">
     <div class="text">${escapeHTML(item.text)}${item.tag?` <span class="chip">${escapeHTML(item.tag)}</span>`:''}</div>
   `;
-  // Tap on the card toggles checkbox & visual state
   label.addEventListener('click', (e) => {
     if (e.target.tagName.toLowerCase() !== 'input') {
       const cb = label.querySelector('input');
