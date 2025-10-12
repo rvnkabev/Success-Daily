@@ -1,3 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Success Diary</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      padding: 1em;
+      background: #f9f9f9;
+      font-size: 240%;
+      text-align: center;
+    }
+    .page{display:none;}
+    .active{display:block;}
+    button{
+      margin: 0.4em;
+      padding: 0.3em 1em;
+      font-size: 90%;
+      cursor: pointer;
+    }
+    input,textarea,select{
+      width: 90%;
+      padding: 0.5em;
+      font-size: 90%;
+      margin: 0.6em 0;
+    }
+    .row{ display:flex; gap:0.6em; justify-content:center; align-items:center; flex-wrap:wrap; }
+    .row > * { flex:1 1 240px; max-width:480px; }
+    .hint{font-size: 60%; color:#666; margin-top:-0.4em}
+    .small{font-size: 70%;}
+
+    /* ===== Mobile-friendly ToDo cards ===== */
+    .todo-wrap { text-align:left; max-width:640px; margin:0 auto; }
+    .toolbar { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0.2em 0 0.6em; }
+    .toolbar button { padding: 0.4em 0.8em; font-size: 80%; }
+
+    .todo-input { display:flex; gap:8px; align-items:center; justify-content:center; }
+    .todo-input input { flex: 1 1 auto; max-width:none; }
+    .todo-input button { padding:0.4em 0.8em; font-size: 90%; }
+
+    .cards { display:grid; grid-template-columns: 1fr; gap:12px; }
+    @media (min-width:420px){ .cards { grid-template-columns: 1fr 1fr; } }
+
+    .card {
+      display:flex; align-items:center; gap:12px;
+      background:#fff; border-radius:14px; border:1px solid #ddd;
+      padding:14px 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      min-height:56px;
+    }
+    .card input[type="checkbox"] { width:26px; height:26px; }
+    .card .text { font-size: 80%; line-height:1.2; }
+    .chip { display:inline-block; border:1px solid #ccc; border-radius:999px; padding:0.05em 0.5em; font-size:65%; margin-left:6px; color:#666; }
+
+    /* Selected state */
+    .card.selected { border-color:#7aa2ff; box-shadow:0 0 0 3px rgba(122,162,255,0.2); }
+
+    /* Sticky bottom bar */
+    .sticky-bar {
+      position: sticky; bottom:0; left:0; right:0;
+      background: #f9f9f9;
+      padding: 8px 6px 2px;
+      margin-top: 8px;
+    }
+    .sticky-actions { display:flex; gap:10px; justify-content:center; }
+    .primary { background:#7aa2ff; color:#fff; border:none; border-radius:10px; padding:0.5em 0.9em; }
+    .success { background:#25d0a6; color:#fff; border:none; border-radius:10px; padding:0.5em 0.9em; }
+
+    /* Sub/rel pages */
+    .pill{display:inline-block; border:1px solid #ccc; border-radius:999px; padding:0.2em 0.6em; margin:0.2em; font-size:80%;}
+  </style>
+</head>
+<body>
+
+<!-- 1 - Main categories -->
+<div class="page active" id="page1">
+  <h2>Select Main Category</h2>
+  <button onclick="selectCategory('Health')">Health</button>
+  <button onclick="selectCategory('MentalHealth')">Mental&nbsp;Health</button>
+  <button onclick="selectCategory('Relationship')">Relationship</button>
+  <button onclick="selectCategory('Finance')">Finance</button>
+  <button onclick="selectCategory('Work')">Work</button>
+  <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
+  <button onclick="selectCategory('TonightToDoList')">Tonight ToDoList</button>
+  <button onclick="selectCategory('Other')">Other</button>
+</div>
+
+<!-- 2 - Sub-categories (generic) -->
+<div class="page" id="pageSub">
+  <h2 id="subCategoryTitle"></h2>
+  <div id="subButtons"></div>
+</div>
+
+<!-- 2b - Relationship tag layer (#eat / #desire) -->
+<div class="page" id="pageRelTags">
+  <h2 id="relTagTitle"></h2>
+  <div id="relTagButtons"></div>
+</div>
+
 <!-- NEW: Dopamine Action page (MentalHealth) -->
 <div class="page" id="pageDopa">
   <h2>MentalHealth — Dopamine Action</h2>
@@ -6,6 +107,376 @@
     <button class="pill" onclick="logDopamineAction('[[Middle Dopamine]]')">Middle Dopamine</button>
     <button class="pill" onclick="logDopamineAction('[[High Dopamine]]')">High Dopamine</button>
     <button class="pill" onclick="logDopamineAction('[[Chaos]]')">Chaos</button>
+    <button class="pill" onclick="logDopamineAction('[[。。。]]')">以上</button>
+  </div>
+  <div class="small hint">點擊即記錄，不在頁面顯示 [[...]] 內容</div>
+  <button style="margin-top:10px;" onclick="goHome()">Cancel</button>
+</div>
+
+<!-- 3 - Free-text input -->
+<div class="page" id="pageInput">
+  <h2 id="selectedCategoryLabel"></h2>
+  <p id="currentTime"></p>
+  <input type="text" id="content" placeholder="Describe here…" />
+  <div class="small" id="autoTagsHint"></div>
+  <button onclick="saveToNotes()">Save</button>
+</div>
+
+<!-- 4 - Health form -->
+<div class="page" id="pageHealth">
+  <h2>Health — Daily Check-in</h2>
+  <p id="healthTime" class="small"></p>
+  <div class="row">
+    <div>
+      <label for="sleepHours" class="small">Sleeping hours</label>
+      <select id="sleepHours">
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+        <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
+        <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+      </select>
+    </div>
+    <div>
+      <label for="onBedTime" class="small">On bed time</label>
+      <input type="time" id="onBedTime" />
+      <div class="hint">Default 9:30pm</div>
+    </div>
+    <div>
+      <label for="energy" class="small">Energy (1–10)</label>
+      <select id="energy">
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+        <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+  </div>
+  <textarea id="healthNotes" placeholder="Optional notes (diet, symptoms, meds, etc.)"></textarea>
+  <button onclick="saveHealth()">Save</button>
+  <button onclick="goHome()">Cancel</button>
+</div>
+
+<!-- 5 - Tonight ToDoList (MOBILE-FIRST) -->
+<div class="page" id="pageTodo">
+  <h2>Tonight ToDoList</h2>
+  <div class="small" id="todoDateTime"></div>
+
+  <div class="todo-wrap">
+    <div class="toolbar">
+      <button onclick="selectAllTodos()">全選</button>
+      <button onclick="clearAllTodos()">清空</button>
+    </div>
+
+    <div class="todo-input">
+      <input id="todoNew" type="text" placeholder="新增項目…（如：買菜、洗衣）" />
+      <button onclick="addTodoFromInput()">＋</button>
+    </div>
+
+    <div class="cards" id="todoCards"></div>
+
+    <div class="sticky-bar">
+      <div class="sticky-actions">
+        <button class="primary" onclick="saveTonight('planned')">儲存為 Planned</button>
+        <button class="success" onclick="saveTonight('done')">儲存為 Done</button>
+      </div>
+      <div class="small" style="margin-top:4px;">可多選；儲存會寫入 #tonighttodolist 與 status</div>
+    </div>
   </div>
   <button style="margin-top:10px;" onclick="goHome()">Cancel</button>
 </div>
+
+<script>
+/** ---------- Config ---------- **/
+const categoryMap = {
+  Health: [],
+  // MentalHealth 移除：服從、忍、risk
+  MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "DopamineAction", "Other"],
+  Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
+  Finance: [],
+  Work: ["A12", "MEWP", "Communication", "Other"],
+  Pomodoro: ["English", "Finance", "Reading", "Review"],
+  TonightToDoList: [],  // custom page
+  Other: []
+};
+
+const relationshipPersons = new Set(["HappyWifeHappyLife","Friendship","Father","Mother","Wife","Other"]);
+const relSecondTags = ["#eat", "#desire"];
+
+let selectedCategory = '';
+let selectedSubCategory = '';
+let selectedRelPerson = '';
+let selectedRelSecondTag = '';
+
+/** ---------- Time helpers ---------- **/
+const fmtTime = () => {
+  const d = new Date();
+  let h = d.getHours(), m = d.getMinutes().toString().padStart(2, '0');
+  const am = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return `${h}:${m}${am}`;
+};
+const fmtDate = () => {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+};
+
+/** ---------- UI helpers ---------- **/
+const hidePages = () => document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+const goHome = () => { hidePages(); document.getElementById('page1').classList.add('active'); };
+
+/** ---------- Category flow ---------- **/
+function selectCategory(cat) {
+  selectedCategory = cat;
+  selectedSubCategory = '';
+  selectedRelPerson = '';
+  selectedRelSecondTag = '';
+
+  if (cat === 'Health') return gotoHealth();
+  if (cat === 'TonightToDoList') return gotoTodo();
+
+  const subs = categoryMap[cat] || [];
+  if (cat === 'Pomodoro') {
+    buildSubButtons(subs);
+    hidePages(); document.getElementById('pageSub').classList.add('active');
+    return;
+  }
+  if (subs.length > 0) {
+    buildSubButtons(subs);
+    hidePages(); document.getElementById('pageSub').classList.add('active');
+  } else {
+    gotoInput();
+  }
+}
+
+function buildSubButtons(arr) {
+  const wrap = document.getElementById('subButtons');
+  wrap.innerHTML = '';
+  document.getElementById('subCategoryTitle').textContent = selectedCategory;
+  arr.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s;
+    b.onclick = () => selectSubCategory(s);
+    wrap.appendChild(b);
+  });
+}
+
+function selectSubCategory(sub) {
+  selectedSubCategory = sub;
+
+  // --- MentalHealth special: Dopamine Action page ---
+  if (selectedCategory === 'MentalHealth' && sub === 'DopamineAction') {
+    return gotoDopamineAction();
+  }
+
+  if (selectedCategory === 'Relationship' && relationshipPersons.has(sub)) {
+    selectedRelPerson = sub;
+    showRelSecondTags(sub);
+    return;
+  }
+  if (selectedCategory === 'Pomodoro') {
+    logPomodoro();
+  } else {
+    gotoInput();
+  }
+}
+
+function showRelSecondTags(person) {
+  hidePages();
+  document.getElementById('relTagTitle').textContent = `Relationship / ${person}`;
+  const wrap = document.getElementById('relTagButtons');
+  wrap.innerHTML = '';
+  relSecondTags.forEach(t => {
+    const btn = document.createElement('button');
+    btn.textContent = t;
+    btn.onclick = () => {
+      selectedRelSecondTag = t;
+      selectedSubCategory = `${person}/${t}`;
+      gotoInput(true);
+    };
+    wrap.appendChild(btn);
+  });
+  document.getElementById('pageRelTags').classList.add('active');
+}
+
+function gotoInput(showAutoHint=false) {
+  hidePages();
+  const label = selectedSubCategory ? `${selectedCategory}/${selectedSubCategory}` : selectedCategory;
+  document.getElementById('selectedCategoryLabel').textContent = label;
+  document.getElementById('currentTime').textContent = fmtTime();
+  document.getElementById('content').value = '';
+  document.getElementById('autoTagsHint').textContent = showAutoHint ? '已選：' + selectedSubCategory : '';
+  document.getElementById('pageInput').classList.add('active');
+}
+
+/** ---------- Health page ---------- **/
+function gotoHealth() {
+  hidePages();
+  document.getElementById('sleepHours').value = '7';
+  document.getElementById('onBedTime').value = '21:30';
+  document.getElementById('energy').value = '7';
+  document.getElementById('healthNotes').value = '';
+  document.getElementById('healthTime').textContent = `${fmtDate()} ${fmtTime()}`;
+  document.getElementById('pageHealth').classList.add('active');
+}
+
+/** ---------- Tonight ToDoList (mobile-first) ---------- **/
+const DEFAULT_TODOS = [
+  { text: "買雞" },
+  { text: "整雞水", tag:"1.5hr" },
+  { text: "整雞水", tag:"30mins" },
+  { text: "運動" },
+  { text: "游水" }
+];
+
+function gotoTodo() {
+  hidePages();
+  document.getElementById('todoDateTime').textContent = `${fmtDate()} ${fmtTime()}`;
+  const box = document.getElementById('todoCards');
+  box.innerHTML = '';
+  DEFAULT_TODOS.forEach(addTodoCard);
+  document.getElementById('todoNew').value = '';
+  document.getElementById('pageTodo').classList.add('active');
+}
+
+function addTodoCard(item) {
+  const box = document.getElementById('todoCards');
+  const id = 't_' + Math.random().toString(36).slice(2,8);
+  const label = document.createElement('label');
+  label.className = 'card';
+  label.innerHTML = `
+    <input type="checkbox" id="${id}">
+    <div class="text">${escapeHTML(item.text)}${item.tag?` <span class="chip">${escapeHTML(item.tag)}</span>`:''}</div>
+  `;
+  label.addEventListener('click', (e) => {
+    if (e.target.tagName.toLowerCase() !== 'input') {
+      const cb = label.querySelector('input');
+      cb.checked = !cb.checked;
+      label.classList.toggle('selected', cb.checked);
+      e.preventDefault();
+    } else {
+      label.classList.toggle('selected', e.target.checked);
+    }
+  });
+  box.appendChild(label);
+}
+
+function addTodoFromInput() {
+  const v = (document.getElementById('todoNew').value || '').trim();
+  if (!v) return;
+  addTodoCard({text: v});
+  document.getElementById('todoNew').value = '';
+}
+
+function selectAllTodos() {
+  document.querySelectorAll('#todoCards .card input[type="checkbox"]').forEach(cb => {
+    cb.checked = true;
+    cb.closest('.card').classList.add('selected');
+  });
+}
+function clearAllTodos() {
+  document.querySelectorAll('#todoCards .card input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+    cb.closest('.card').classList.remove('selected');
+  });
+}
+
+/** ---------- Note building & saving ---------- **/
+function buildEntry(text) {
+  const date = fmtDate(), time = fmtTime();
+  const tags = [
+    `#${selectedCategory.toLowerCase()}`,
+    selectedSubCategory ? `#${selectedSubCategory.toLowerCase()}` : ''
+  ].filter(Boolean).join(' ');
+  return `[${date}\n${time} ｜ ${text} ${tags}]`;
+}
+
+function sendToShortcuts(encoded, isFinance) {
+  const u1 = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
+  if (isFinance) {
+    const u2 = `shortcuts://run-shortcut?name=SaveToInvestment&input=text&text=${encoded}`;
+    window.open(u1);
+    setTimeout(() => window.location.href = u2, 500);
+  } else {
+    window.location.href = u1;
+  }
+}
+
+/** Generic free-text save **/
+function saveToNotes() {
+  let txt = document.getElementById('content').value.trim();
+  if (!txt) { alert("Please enter something!"); return; }
+  txt = txt.replace(/#review\]/gi, '#review');
+  const note = buildEntry(txt);
+  sendToShortcuts(encodeURIComponent(note), selectedCategory === 'Finance');
+}
+
+/** Pomodoro quick log **/
+function logPomodoro() {
+  const note = buildEntry('25mins');
+  sendToShortcuts(encodeURIComponent(note), false);
+  goHome();
+}
+
+/** Health structured save **/
+function saveHealth() {
+  const hours = parseInt((document.getElementById('sleepHours').value || '').trim(), 10);
+  const onBed = (document.getElementById('onBedTime').value || '').trim();
+  const energy = parseInt(document.getElementById('energy').value, 10);
+  const notes = (document.getElementById('healthNotes').value || '').trim();
+
+  if (isNaN(hours) || hours < 4 || hours > 12) { alert('Please select sleeping hours between 4 and 12.'); return; }
+  if (!onBed) { alert('Please enter on-bed time.'); return; }
+  if (isNaN(energy) || energy < 1 || energy > 10) { alert('Energy must be 1–10.'); return; }
+
+  const onBedHuman = toHumanTime(onBed);
+  const pieces = [`sleep=${hours}h`,`onBed=${onBedHuman}`,`energy=${energy}/10`];
+  if (notes) pieces.push(`notes=${sanitizeInline(notes)}`);
+
+  const text = pieces.join(' | ');
+  selectedCategory = 'Health';
+  selectedSubCategory = '';
+  const note = buildEntry(text);
+  sendToShortcuts(encodeURIComponent(note), false);
+}
+
+/** Tonight save */
+function saveTonight(state) {
+  const picked = Array.from(document.querySelectorAll('#todoCards .card'))
+    .filter(card => card.querySelector('input').checked)
+    .map(card => card.querySelector('.text').innerText.trim());
+
+  if (picked.length === 0) { alert('請至少選擇一項或新增項目'); return; }
+
+  selectedCategory = 'TonightToDoList';
+  selectedSubCategory = '';
+  const text = `Tonight: ${picked.join(', ')} | status=${state}`;
+  const note = buildEntry(text);
+  sendToShortcuts(encodeURIComponent(note), false);
+}
+
+/** helpers **/
+function toHumanTime(hhmm) {
+  const [hStr, mStr] = hhmm.split(':');
+  let h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return `${h}:${mStr}${ampm}`;
+}
+function sanitizeInline(s) { return s.replace(/\n+/g, ' ').replace(/\]/g, ')'); }
+function escapeHTML(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/** ---------- Dopamine Action (MentalHealth) ---------- **/
+function gotoDopamineAction() {
+  hidePages();
+  document.getElementById('pageDopa').classList.add('active');
+}
+function logDopamineAction(token) {
+  // 不在頁面顯示 [[...]]，直接背景記錄
+  selectedCategory = 'MentalHealth';
+  selectedSubCategory = 'DopamineAction';
+  const note = buildEntry(token);
+  sendToShortcuts(encodeURIComponent(note), false);
+  goHome();
+}
+</script>
+</body>
+</html>
