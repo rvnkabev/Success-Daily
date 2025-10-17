@@ -81,6 +81,9 @@
   <button onclick="selectCategory('Work')">Work</button>
   <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
   <button onclick="selectCategory('TonightToDoList')">Tonight ToDoList</button>
+  <!-- NEW -->
+  <button onclick="selectCategory('Pain/anxietyDaily')">Pain/anxietyDaily</button>
+  <button onclick="selectCategory('Reward')">Reward</button>
   <button onclick="selectCategory('Other')">Other</button>
 </div>
 
@@ -199,6 +202,8 @@ const categoryMap = {
   Work: ["A12", "MEWP", "Communication", "Other"],
   Pomodoro: ["English", "Finance", "Reading", "Review"],
   TonightToDoList: [],
+  "Pain/anxietyDaily": [],                 // NEW: goes to free-text with special tag
+  Reward: ["抱石美女", "打機老婆（30mins)"], // NEW: two quick actions
   Other: []
 };
 
@@ -241,8 +246,14 @@ function selectCategory(cat) {
   if (cat === 'Health') return gotoHealth();
   if (cat === 'TonightToDoList') return gotoTodo();
 
+  // NEW: Pain/anxietyDaily -> straight to free text (special tag on save)
+  if (cat === 'Pain/anxietyDaily') {
+    gotoInput();
+    return;
+  }
+
   const subs = categoryMap[cat] || [];
-  if (cat === 'Pomodoro') {
+  if (cat === 'Pomodoro' || cat === 'Reward') {
     buildSubButtons(subs);
     hidePages(); document.getElementById('pageSub').classList.add('active');
     return;
@@ -273,6 +284,11 @@ function selectSubCategory(sub) {
   // MentalHealth special: Dopamine Action page -> step 1
   if (selectedCategory === 'MentalHealth' && sub === 'DopamineAction') {
     return gotoDopamineAction();
+  }
+
+  // Reward quick actions
+  if (selectedCategory === 'Reward') {
+    return logReward(sub);
   }
 
   if (selectedCategory === 'Relationship' && relationshipPersons.has(sub)) {
@@ -387,14 +403,25 @@ function clearAllTodos() {
   });
 }
 
-/** ---------- Note building & saving ---------- **/
-function buildEntry(text) {
+/** ---------- Note builders & saving ---------- **/
+function buildEntry(text, tagsOverride=null) {
   const date = fmtDate(), time = fmtTime();
-  const tags = [
-    `#${selectedCategory.toLowerCase()}`,
-    selectedSubCategory ? `#${selectedSubCategory.toLowerCase()}` : ''
-  ].filter(Boolean).join(' ');
-  return `[${date}\n${time} ｜ ${text} ${tags}]`;
+  let tags = '';
+  if (Array.isArray(tagsOverride)) {
+    tags = tagsOverride.join(' ').trim();
+  } else {
+    // default tags from selected category/subcategory (lowercased),
+    // EXCEPT: keep exact case for "Pain/anxietyDaily"
+    const mainTag = selectedCategory === 'Pain/anxietyDaily'
+      ? '#Pain/anxietyDaily'
+      : (selectedCategory ? `#${selectedCategory.toLowerCase()}` : '');
+    const subTag = selectedSubCategory
+      ? `#${selectedSubCategory.toLowerCase()}`
+      : '';
+    tags = [mainTag, subTag].filter(Boolean).join(' ');
+  }
+  const suffix = tags ? ` ${tags}` : '';
+  return `[${date}\n${time} ｜ ${text}${suffix}]`;
 }
 
 function sendToShortcuts(encoded, isFinance) {
@@ -413,7 +440,12 @@ function saveToNotes() {
   let txt = document.getElementById('content').value.trim();
   if (!txt) { alert("Please enter something!"); return; }
   txt = txt.replace(/#review\]/gi, '#review');
-  const note = buildEntry(txt);
+
+  // Special tag requirement for Pain/anxietyDaily
+  const note = (selectedCategory === 'Pain/anxietyDaily')
+    ? buildEntry(txt, ['#Pain/anxietyDaily'])
+    : buildEntry(txt);
+
   sendToShortcuts(encodeURIComponent(note), selectedCategory === 'Finance');
 }
 
@@ -459,6 +491,22 @@ function saveTonight(state) {
   const text = `Tonight: ${picked.join(', ')} | status=${state}`;
   const note = buildEntry(text);
   sendToShortcuts(encodeURIComponent(note), false);
+}
+
+/** Reward quick actions (no extra tags; exact content required) **/
+function logReward(option) {
+  let text = '';
+  if (option === '抱石美女') {
+    text = '抱石美女=享受#抱石美女 60**';
+  } else if (option === '打機老婆（30mins)') {
+    text = '打機老婆（30mins)=打機#wife 5**';
+  } else {
+    return;
+  }
+  // Build entry WITHOUT auto category tags
+  const note = buildEntry(text, []); // empty tagsOverride -> no tags appended
+  sendToShortcuts(encodeURIComponent(note), false);
+  goHome();
 }
 
 /** helpers **/
