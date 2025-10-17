@@ -81,8 +81,7 @@
   <button onclick="selectCategory('Work')">Work</button>
   <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
   <button onclick="selectCategory('TonightToDoList')">Tonight ToDoList</button>
-  <!-- NEW -->
-  <button onclick="selectCategory('Pain/anxietyDaily')">Pain/anxietyDaily</button>
+  <button onclick="selectCategory('PainAnxietyDaily')">Pain/anxietyDaily</button>
   <button onclick="selectCategory('Reward')">Reward</button>
   <button onclick="selectCategory('Other')">Other</button>
 </div>
@@ -202,13 +201,18 @@ const categoryMap = {
   Work: ["A12", "MEWP", "Communication", "Other"],
   Pomodoro: ["English", "Finance", "Reading", "Review"],
   TonightToDoList: [],
-  "Pain/anxietyDaily": [],                 // NEW: goes to free-text with special tag
-  Reward: ["抱石美女", "打機老婆（30mins)"], // NEW: two quick actions
+  PainAnxietyDaily: [],                 // NEW main category (free text, special tag)
+  Reward: ["抱石美女", "打機老婆（30mins)"], // NEW main category with 2 quick actions
   Other: []
 };
 
 const relationshipPersons = new Set(["HappyWifeHappyLife","Friendship","Father","Mother","Wife","Other"]);
 const relSecondTags = ["#eat", "#desire"];
+
+/** NEW: Tag override map for exact tags (case-sensitive / with slash) **/
+const tagOverrideByCategory = {
+  PainAnxietyDaily: "#Pain/anxietyDaily"
+};
 
 let selectedCategory = '';
 let selectedSubCategory = '';
@@ -246,14 +250,15 @@ function selectCategory(cat) {
   if (cat === 'Health') return gotoHealth();
   if (cat === 'TonightToDoList') return gotoTodo();
 
-  // NEW: Pain/anxietyDaily -> straight to free text (special tag on save)
-  if (cat === 'Pain/anxietyDaily') {
-    gotoInput();
+  // NEW: Reward → show two quick actions
+  if (cat === 'Reward') {
+    buildSubButtons(categoryMap.Reward);
+    hidePages(); document.getElementById('pageSub').classList.add('active');
     return;
   }
 
   const subs = categoryMap[cat] || [];
-  if (cat === 'Pomodoro' || cat === 'Reward') {
+  if (cat === 'Pomodoro') {
     buildSubButtons(subs);
     hidePages(); document.getElementById('pageSub').classList.add('active');
     return;
@@ -262,6 +267,7 @@ function selectCategory(cat) {
     buildSubButtons(subs);
     hidePages(); document.getElementById('pageSub').classList.add('active');
   } else {
+    // Default: free text input
     gotoInput();
   }
 }
@@ -269,7 +275,9 @@ function selectCategory(cat) {
 function buildSubButtons(arr) {
   const wrap = document.getElementById('subButtons');
   wrap.innerHTML = '';
-  document.getElementById('subCategoryTitle').textContent = selectedCategory;
+  // Display label tweak for Pain/anxietyDaily
+  const pretty = selectedCategory === 'PainAnxietyDaily' ? 'Pain/anxietyDaily' : selectedCategory;
+  document.getElementById('subCategoryTitle').textContent = pretty;
   arr.forEach(s => {
     const b = document.createElement('button');
     b.textContent = s;
@@ -286,9 +294,9 @@ function selectSubCategory(sub) {
     return gotoDopamineAction();
   }
 
-  // Reward quick actions
+  // NEW: Reward quick save paths
   if (selectedCategory === 'Reward') {
-    return logReward(sub);
+    return saveReward(sub);
   }
 
   if (selectedCategory === 'Relationship' && relationshipPersons.has(sub)) {
@@ -323,7 +331,8 @@ function showRelSecondTags(person) {
 
 function gotoInput(showAutoHint=false) {
   hidePages();
-  const label = selectedSubCategory ? `${selectedCategory}/${selectedSubCategory}` : selectedCategory;
+  const labelRaw = selectedSubCategory ? `${selectedCategory}/${selectedSubCategory}` : selectedCategory;
+  const label = labelRaw === 'PainAnxietyDaily' ? 'Pain/anxietyDaily' : labelRaw;
   document.getElementById('selectedCategoryLabel').textContent = label;
   document.getElementById('currentTime').textContent = fmtTime();
   document.getElementById('content').value = '';
@@ -403,25 +412,21 @@ function clearAllTodos() {
   });
 }
 
-/** ---------- Note builders & saving ---------- **/
-function buildEntry(text, tagsOverride=null) {
+/** ---------- Note building & saving ---------- **/
+function buildEntry(text, forceTags=null) {
   const date = fmtDate(), time = fmtTime();
-  let tags = '';
-  if (Array.isArray(tagsOverride)) {
-    tags = tagsOverride.join(' ').trim();
+  let tags;
+  if (forceTags !== null) {
+    tags = forceTags; // exact tags or '' for none
   } else {
-    // default tags from selected category/subcategory (lowercased),
-    // EXCEPT: keep exact case for "Pain/anxietyDaily"
-    const mainTag = selectedCategory === 'Pain/anxietyDaily'
-      ? '#Pain/anxietyDaily'
-      : (selectedCategory ? `#${selectedCategory.toLowerCase()}` : '');
-    const subTag = selectedSubCategory
-      ? `#${selectedSubCategory.toLowerCase()}`
-      : '';
-    tags = [mainTag, subTag].filter(Boolean).join(' ');
+    const auto = [
+      `#${(selectedCategory || '').toLowerCase()}`,
+      selectedSubCategory ? `#${selectedSubCategory.toLowerCase()}` : ''
+    ].filter(Boolean).join(' ');
+    tags = auto;
   }
-  const suffix = tags ? ` ${tags}` : '';
-  return `[${date}\n${time} ｜ ${text}${suffix}]`;
+  const tagPart = tags ? ` ${tags}` : '';
+  return `[${date}\n${time} ｜ ${text}${tagPart}]`;
 }
 
 function sendToShortcuts(encoded, isFinance) {
@@ -441,11 +446,14 @@ function saveToNotes() {
   if (!txt) { alert("Please enter something!"); return; }
   txt = txt.replace(/#review\]/gi, '#review');
 
-  // Special tag requirement for Pain/anxietyDaily
-  const note = (selectedCategory === 'Pain/anxietyDaily')
-    ? buildEntry(txt, ['#Pain/anxietyDaily'])
-    : buildEntry(txt);
+  // NEW: exact tag override for Pain/anxietyDaily
+  if (selectedCategory === 'PainAnxietyDaily') {
+    const note = buildEntry(txt, tagOverrideByCategory.PainAnxietyDaily);
+    sendToShortcuts(encodeURIComponent(note), false);
+    return;
+  }
 
+  const note = buildEntry(txt);
   sendToShortcuts(encodeURIComponent(note), selectedCategory === 'Finance');
 }
 
@@ -493,22 +501,6 @@ function saveTonight(state) {
   sendToShortcuts(encodeURIComponent(note), false);
 }
 
-/** Reward quick actions (no extra tags; exact content required) **/
-function logReward(option) {
-  let text = '';
-  if (option === '抱石美女') {
-    text = '抱石美女=享受#抱石美女 60**';
-  } else if (option === '打機老婆（30mins)') {
-    text = '打機老婆（30mins)=打機#wife 5**';
-  } else {
-    return;
-  }
-  // Build entry WITHOUT auto category tags
-  const note = buildEntry(text, []); // empty tagsOverride -> no tags appended
-  sendToShortcuts(encodeURIComponent(note), false);
-  goHome();
-}
-
 /** helpers **/
 function toHumanTime(hhmm) {
   const [hStr, mStr] = hhmm.split(':');
@@ -548,6 +540,24 @@ function saveDopaEvent(){
   sendToShortcuts(encodeURIComponent(note), false);
   selectedDopaToken = '';
   selectedDopaLabel = '';
+  goHome();
+}
+
+/** ---------- NEW: Reward quick saves ---------- **/
+function saveReward(choice){
+  // Map choices to exact note text + (no extra tags)
+  let text = '';
+  if (choice === '抱石美女') {
+    text = '享受 #抱石美女 60**';
+  } else if (choice === '打機老婆（30mins)') {
+    text = '打機 #wife 5**';
+  } else {
+    alert('Unknown reward option'); return;
+  }
+  selectedCategory = 'Reward';
+  selectedSubCategory = '';
+  const note = buildEntry(text, ''); // force NO auto tags; exact requested text only
+  sendToShortcuts(encodeURIComponent(note), false);
   goHome();
 }
 </script>
