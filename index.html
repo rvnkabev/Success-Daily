@@ -159,7 +159,9 @@
   </div>
   <textarea id="healthNotes" placeholder="Optional notes (diet, symptoms, meds, etc.)"></textarea>
   <button onclick="saveHealth()">Save</button>
-  <button onclick="goHome()">Cancel</button>
+  <!-- NEW button: dip face into ice water -->
+  <button onclick="logIceWater()" style="margin-left:6px;">Dip face into ice water</button>
+  <button onclick="goHome()" style="margin-left:6px;">Cancel</button>
 </div>
 
 <!-- 5 - Tonight ToDoList (MOBILE-FIRST) -->
@@ -429,15 +431,26 @@ function buildEntry(text, forceTags=null) {
   return `[${date}\n${time} ｜ ${text}${tagPart}]`;
 }
 
-function sendToShortcuts(encoded, isFinance) {
-  const u1 = `shortcuts://run-shortcut?name=SaveToSuccessDaily&input=text&text=${encoded}`;
-  if (isFinance) {
-    const u2 = `shortcuts://run-shortcut?name=SaveToInvestment&input=text&text=${encoded}`;
-    window.open(u1);
-    setTimeout(() => window.location.href = u2, 500);
-  } else {
-    window.location.href = u1;
-  }
+/**
+ * Generalized shortcut sender
+ * encodedText: 已經 encodeURIComponent() 過的文字
+ * opts.shortcuts: 陣列，例如 ["SaveToSuccessDaily","SaveToInvestment"]
+ */
+function sendToShortcuts(encodedText, opts) {
+  const names = (opts && Array.isArray(opts.shortcuts) && opts.shortcuts.length)
+    ? opts.shortcuts
+    : ["SaveToSuccessDaily"];
+
+  names.forEach((name, idx) => {
+    const url = `shortcuts://run-shortcut?name=${encodeURIComponent(name)}&input=text&text=${encodedText}`;
+    if (idx === 0) {
+      // 第一個先觸發
+      window.open(url);
+    } else {
+      // 之後的用延時觸發，避免互相打架
+      setTimeout(() => { window.location.href = url; }, 600 * idx);
+    }
+  });
 }
 
 /** Generic free-text save **/
@@ -446,21 +459,24 @@ function saveToNotes() {
   if (!txt) { alert("Please enter something!"); return; }
   txt = txt.replace(/#review\]/gi, '#review');
 
-  // NEW: exact tag override for Pain/anxietyDaily
-  if (selectedCategory === 'PainAnxietyDaily') {
-    const note = buildEntry(txt, tagOverrideByCategory.PainAnxietyDaily);
-    sendToShortcuts(encodeURIComponent(note), false);
-    return;
-  }
+  const encoded = encodeURIComponent(
+    selectedCategory === 'PainAnxietyDaily'
+      ? buildEntry(txt, tagOverrideByCategory.PainAnxietyDaily)
+      : buildEntry(txt)
+  );
 
-  const note = buildEntry(txt);
-  sendToShortcuts(encodeURIComponent(note), selectedCategory === 'Finance');
+  if (selectedCategory === 'Finance') {
+    // Finance: SuccessDaily + Investment
+    sendToShortcuts(encoded, { shortcuts: ["SaveToSuccessDaily","SaveToInvestment"] });
+  } else {
+    sendToShortcuts(encoded);
+  }
 }
 
 /** Pomodoro quick log **/
 function logPomodoro() {
   const note = buildEntry('25mins');
-  sendToShortcuts(encodeURIComponent(note), false);
+  sendToShortcuts(encodeURIComponent(note));
   goHome();
 }
 
@@ -483,7 +499,24 @@ function saveHealth() {
   selectedCategory = 'Health';
   selectedSubCategory = '';
   const note = buildEntry(text);
-  sendToShortcuts(encodeURIComponent(note), false);
+
+  // Health: SuccessDaily + ADHD KSM66 and coffee
+  sendToShortcuts(encodeURIComponent(note), {
+    shortcuts: ["SaveToSuccessDaily","SaveToADHD KSM66 and coffee"]
+  });
+}
+
+/** NEW: quick log for "dip face into ice water" **/
+function logIceWater() {
+  selectedCategory = 'Health';
+  selectedSubCategory = '';
+  const text = 'Ice water wash face';
+  const note = buildEntry(text);
+  // 只寫入臉部相關記錄的 Shortcut
+  sendToShortcuts(encodeURIComponent(note), {
+    shortcuts: ["SaveToFacial photo record"]
+  });
+  goHome();
 }
 
 /** Tonight save */
@@ -498,7 +531,7 @@ function saveTonight(state) {
   selectedSubCategory = '';
   const text = `Tonight: ${picked.join(', ')} | status=${state}`;
   const note = buildEntry(text);
-  sendToShortcuts(encodeURIComponent(note), false);
+  sendToShortcuts(encodeURIComponent(note));
 }
 
 /** helpers **/
@@ -537,7 +570,7 @@ function saveDopaEvent(){
   selectedSubCategory = 'DopamineAction';
   const text = `${sanitizeInline(eventText)} ${selectedDopaToken}`;
   const note = buildEntry(text);
-  sendToShortcuts(encodeURIComponent(note), false);
+  sendToShortcuts(encodeURIComponent(note));
   selectedDopaToken = '';
   selectedDopaLabel = '';
   goHome();
@@ -557,7 +590,7 @@ function saveReward(choice){
   selectedCategory = 'Reward';
   selectedSubCategory = '';
   const note = buildEntry(text, ''); // force NO auto tags; exact requested text only
-  sendToShortcuts(encodeURIComponent(note), false);
+  sendToShortcuts(encodeURIComponent(note));
   goHome();
 }
 </script>
