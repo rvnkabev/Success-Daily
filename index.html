@@ -514,7 +514,7 @@ function logIceWater() {
   const note = buildEntry(text);
   // 只寫入臉部相關記錄的 Shortcut
   sendToShortcuts(encodeURIComponent(note), {
-    shortcuts: "SaveToSuccessDaily","SaveToFacial photo record"]
+    shortcuts: ["SaveToSuccessDaily","SaveToFacial photo record"]
   });
   goHome();
 }
