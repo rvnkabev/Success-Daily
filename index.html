@@ -203,15 +203,14 @@ const categoryMap = {
   Work: ["A12", "MEWP", "Communication", "Other"],
   Pomodoro: ["English", "Finance", "Reading", "Review"],
   TonightToDoList: [],
-  PainAnxietyDaily: [],                 // NEW main category (free text, special tag)
-  Reward: ["抱石美女", "打機老婆（30mins)"], // NEW main category with 2 quick actions
+  PainAnxietyDaily: [],                 // NEW main category
+  Reward: ["抱石美女", "打機老婆（30mins)"], 
   Other: []
 };
 
 const relationshipPersons = new Set(["HappyWifeHappyLife","Friendship","Father","Mother","Wife","Other"]);
 const relSecondTags = ["#eat", "#desire"];
 
-/** NEW: Tag override map for exact tags (case-sensitive / with slash) **/
 const tagOverrideByCategory = {
   PainAnxietyDaily: "#Pain/anxietyDaily"
 };
@@ -221,9 +220,8 @@ let selectedSubCategory = '';
 let selectedRelPerson = '';
 let selectedRelSecondTag = '';
 
-/** NEW: dopamine token holder **/
-let selectedDopaToken = '';  // e.g. '[[Low Dopamine]]'
-let selectedDopaLabel = '';  // UI-only label without [[...]]
+let selectedDopaToken = '';
+let selectedDopaLabel = '';
 
 /** ---------- Time helpers ---------- **/
 const fmtTime = () => {
@@ -231,7 +229,7 @@ const fmtTime = () => {
   let h = d.getHours(), m = d.getMinutes().toString().padStart(2, '0');
   const am = h >= 12 ? 'pm' : 'am';
   h = h % 12 || 12;
-  return `${h}:${m}${am}`;
+  return `${h}:${m}${amp}`;
 };
 const fmtDate = () => {
   const now = new Date();
@@ -252,7 +250,6 @@ function selectCategory(cat) {
   if (cat === 'Health') return gotoHealth();
   if (cat === 'TonightToDoList') return gotoTodo();
 
-  // NEW: Reward → show two quick actions
   if (cat === 'Reward') {
     buildSubButtons(categoryMap.Reward);
     hidePages(); document.getElementById('pageSub').classList.add('active');
@@ -269,7 +266,6 @@ function selectCategory(cat) {
     buildSubButtons(subs);
     hidePages(); document.getElementById('pageSub').classList.add('active');
   } else {
-    // Default: free text input
     gotoInput();
   }
 }
@@ -277,7 +273,6 @@ function selectCategory(cat) {
 function buildSubButtons(arr) {
   const wrap = document.getElementById('subButtons');
   wrap.innerHTML = '';
-  // Display label tweak for Pain/anxietyDaily
   const pretty = selectedCategory === 'PainAnxietyDaily' ? 'Pain/anxietyDaily' : selectedCategory;
   document.getElementById('subCategoryTitle').textContent = pretty;
   arr.forEach(s => {
@@ -291,12 +286,10 @@ function buildSubButtons(arr) {
 function selectSubCategory(sub) {
   selectedSubCategory = sub;
 
-  // MentalHealth special: Dopamine Action page -> step 1
   if (selectedCategory === 'MentalHealth' && sub === 'DopamineAction') {
     return gotoDopamineAction();
   }
 
-  // NEW: Reward quick save paths
   if (selectedCategory === 'Reward') {
     return saveReward(sub);
   }
@@ -353,7 +346,7 @@ function gotoHealth() {
   document.getElementById('pageHealth').classList.add('active');
 }
 
-/** ---------- Tonight ToDoList (mobile-first) ---------- **/
+/** ---------- Tonight ToDoList ---------- **/
 const DEFAULT_TODOS = [
   { text: "買雞" },
   { text: "整雞水", tag:"1.5hr" },
@@ -414,12 +407,12 @@ function clearAllTodos() {
   });
 }
 
-/** ---------- Note building & saving ---------- **/
+/** ---------- Utilities ---------- **/
 function buildEntry(text, forceTags=null) {
   const date = fmtDate(), time = fmtTime();
   let tags;
   if (forceTags !== null) {
-    tags = forceTags; // exact tags or '' for none
+    tags = forceTags; 
   } else {
     const auto = [
       `#${(selectedCategory || '').toLowerCase()}`,
@@ -431,11 +424,6 @@ function buildEntry(text, forceTags=null) {
   return `[${date}\n${time} ｜ ${text}${tagPart}]`;
 }
 
-/**
- * Generalized shortcut sender
- * encodedText: 已經 encodeURIComponent() 過的文字
- * opts.shortcuts: 陣列，例如 ["SaveToSuccessDaily","SaveToInvestment"]
- */
 function sendToShortcuts(encodedText, opts) {
   const names = (opts && Array.isArray(opts.shortcuts) && opts.shortcuts.length)
     ? opts.shortcuts
@@ -444,16 +432,14 @@ function sendToShortcuts(encodedText, opts) {
   names.forEach((name, idx) => {
     const url = `shortcuts://run-shortcut?name=${encodeURIComponent(name)}&input=text&text=${encodedText}`;
     if (idx === 0) {
-      // 第一個先觸發
       window.open(url);
     } else {
-      // 之後的用延時觸發，避免互相打架
       setTimeout(() => { window.location.href = url; }, 600 * idx);
     }
   });
 }
 
-/** Generic free-text save **/
+/** General text save **/
 function saveToNotes() {
   let txt = document.getElementById('content').value.trim();
   if (!txt) { alert("Please enter something!"); return; }
@@ -466,14 +452,13 @@ function saveToNotes() {
   );
 
   if (selectedCategory === 'Finance') {
-    // Finance: SuccessDaily + Investment
     sendToShortcuts(encoded, { shortcuts: ["SaveToSuccessDaily","SaveToInvestment"] });
   } else {
     sendToShortcuts(encoded);
   }
 }
 
-/** Pomodoro quick log **/
+/** Pomodoro log **/
 function logPomodoro() {
   const note = buildEntry('25mins');
   sendToShortcuts(encodeURIComponent(note));
@@ -482,7 +467,7 @@ function logPomodoro() {
 
 /** Health structured save **/
 function saveHealth() {
-  const hours = parseInt((document.getElementById('sleepHours').value || '').trim(), 10);
+  const hours = parseInt(document.getElementById('sleepHours').value || '0', 10);
   const onBed = (document.getElementById('onBedTime').value || '').trim();
   const energy = parseInt(document.getElementById('energy').value, 10);
   const notes = (document.getElementById('healthNotes').value || '').trim();
@@ -500,26 +485,24 @@ function saveHealth() {
   selectedSubCategory = '';
   const note = buildEntry(text);
 
-  // Health: SuccessDaily + ADHD KSM66 and coffee
   sendToShortcuts(encodeURIComponent(note), {
     shortcuts: ["SaveToSuccessDaily","SaveToADHD KSM66 and coffee"]
   });
 }
 
-/** NEW: quick log for "dip face into ice water" **/
+/** Ice-water dip quick log **/
 function logIceWater() {
   selectedCategory = 'Health';
   selectedSubCategory = '';
   const text = 'Ice water wash face';
   const note = buildEntry(text);
-  // 只寫入臉部相關記錄的 Shortcut
   sendToShortcuts(encodeURIComponent(note), {
     shortcuts: ["SaveToSuccessDaily","SaveToFacial photo record"]
   });
   goHome();
 }
 
-/** Tonight save */
+/** Tonight ToDo save **/
 function saveTonight(state) {
   const picked = Array.from(document.querySelectorAll('#todoCards .card'))
     .filter(card => card.querySelector('input').checked)
@@ -545,16 +528,15 @@ function toHumanTime(hhmm) {
 function sanitizeInline(s) { return s.replace(/\n+/g, ' ').replace(/\]/g, ')'); }
 function escapeHTML(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-/** ---------- Dopamine Action (MentalHealth) ---------- **/
+/** ---------- Dopamine Action ---------- **/
 function gotoDopamineAction() {
   hidePages();
   document.getElementById('pageDopa').classList.add('active');
 }
 
 function chooseDopa(token, label){
-  // Step 1 -> Step 2
-  selectedDopaToken = token;        // e.g. [[Low Dopamine]]
-  selectedDopaLabel = label;        // UI-only (no [[ ]])
+  selectedDopaToken = token;
+  selectedDopaLabel = label;
   hidePages();
   document.getElementById('dopaFormTitle').textContent = `Dopamine Action — ${selectedDopaLabel}`;
   document.getElementById('dopaFormTime').textContent = `${fmtDate()} ${fmtTime()}`;
@@ -565,7 +547,6 @@ function chooseDopa(token, label){
 function saveDopaEvent(){
   const eventText = (document.getElementById('dopaEvent').value || '').trim();
   if(!eventText){ alert('請輸入事件內容'); return; }
-  // 背景記錄 token，不在頁面顯示
   selectedCategory = 'MentalHealth';
   selectedSubCategory = 'DopamineAction';
   const text = `${sanitizeInline(eventText)} ${selectedDopaToken}`;
@@ -576,23 +557,35 @@ function saveDopaEvent(){
   goHome();
 }
 
-/** ---------- NEW: Reward quick saves ---------- **/
+/** ---------- NEW: Reward quick saves (with auto-open link) ---------- **/
 function saveReward(choice){
-  // Map choices to exact note text + (no extra tags)
   let text = '';
+  let url = '';
+
   if (choice === '抱石美女') {
     text = '享受 #抱石美女 60**';
+    url = 'https://rvnkabev.github.io/ticket-draw/';
   } else if (choice === '打機老婆（30mins)') {
     text = '打機 #wife 5**';
+    url = 'https://rvnkabev.github.io/ticket-draw/';
   } else {
-    alert('Unknown reward option'); return;
+    alert('Unknown reward option'); 
+    return;
   }
+
   selectedCategory = 'Reward';
   selectedSubCategory = '';
-  const note = buildEntry(text, ''); // force NO auto tags; exact requested text only
+  const note = buildEntry(text, '');
+
   sendToShortcuts(encodeURIComponent(note));
+
+  if (url) {
+    window.open(url, '_blank');
+  }
+
   goHome();
 }
+
 </script>
 </body>
 </html>
