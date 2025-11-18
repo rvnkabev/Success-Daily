@@ -580,17 +580,33 @@ function saveDopaEvent(){
 function saveReward(choice){
   // Map choices to exact note text + (no extra tags)
   let text = '';
+  let redeemUrl = null;
+
   if (choice === '抱石美女') {
     text = '享受 #抱石美女 60**';
+    // NEW: redeem 60 score when using 抱石美女
+    redeemUrl = 'https://rvnkabev.github.io/ticket-draw/?redeem=60';
   } else if (choice === '打機老婆（30mins)') {
     text = '打機 #wife 5**';
   } else {
     alert('Unknown reward option'); return;
   }
+
   selectedCategory = 'Reward';
   selectedSubCategory = '';
   const note = buildEntry(text, ''); // force NO auto tags; exact requested text only
-  sendToShortcuts(encodeURIComponent(note));
+  const encoded = encodeURIComponent(note);
+
+  // send to SuccessDaily as before
+  sendToShortcuts(encoded);
+
+  // If 抱石美女, after shortcuts fire, jump to redeem page
+  if (redeemUrl) {
+    setTimeout(() => {
+      window.location.href = redeemUrl;
+    }, 800); // small delay to avoid fighting with Shortcuts URL
+  }
+
   goHome();
 }
 </script>
