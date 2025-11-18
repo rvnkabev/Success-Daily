@@ -576,18 +576,25 @@ function saveDopaEvent(){
   goHome();
 }
 
+/** ---------- Ticket draw redeem helper ---------- **/
+function openTicketRedeem(amount){
+  // 透過 URL 參數把數量傳給 ticket-draw
+  const url = `https://rvnkabev.github.io/ticket-draw/?redeem=${amount}`;
+  window.open(url, '_blank');
+}
+
 /** ---------- NEW: Reward quick saves ---------- **/
 function saveReward(choice){
   // Map choices to exact note text + (no extra tags)
   let text = '';
-  let redeemUrl = null;
+  let redeemAmount = 0;
 
   if (choice === '抱石美女') {
     text = '享受 #抱石美女 60**';
-    // NEW: redeem 60 score when using 抱石美女
-    redeemUrl = 'https://rvnkabev.github.io/ticket-draw/?redeem=60';
+    redeemAmount = 60;
   } else if (choice === '打機老婆（30mins)') {
     text = '打機 #wife 5**';
+    redeemAmount = 5;
   } else {
     alert('Unknown reward option'); return;
   }
@@ -595,16 +602,11 @@ function saveReward(choice){
   selectedCategory = 'Reward';
   selectedSubCategory = '';
   const note = buildEntry(text, ''); // force NO auto tags; exact requested text only
-  const encoded = encodeURIComponent(note);
+  sendToShortcuts(encodeURIComponent(note));
 
-  // send to SuccessDaily as before
-  sendToShortcuts(encoded);
-
-  // If 抱石美女, after shortcuts fire, jump to redeem page
-  if (redeemUrl) {
-    setTimeout(() => {
-      window.location.href = redeemUrl;
-    }, 800); // small delay to avoid fighting with Shortcuts URL
+  // 同步觸發 ticket-draw 兌換
+  if (redeemAmount > 0){
+    openTicketRedeem(redeemAmount);
   }
 
   goHome();
