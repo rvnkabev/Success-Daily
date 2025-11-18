@@ -576,39 +576,21 @@ function saveDopaEvent(){
   goHome();
 }
 
-/** ---------- Ticket draw redeem helper ---------- **/
-function openTicketRedeem(amount){
-  // 透過 URL 參數把數量傳給 ticket-draw
-  const url = `https://rvnkabev.github.io/ticket-draw/?redeem=${amount}`;
-  window.open(url, '_blank');
-}
-
 /** ---------- NEW: Reward quick saves ---------- **/
 function saveReward(choice){
   // Map choices to exact note text + (no extra tags)
   let text = '';
-  let redeemAmount = 0;
-
   if (choice === '抱石美女') {
     text = '享受 #抱石美女 60**';
-    redeemAmount = 60;
   } else if (choice === '打機老婆（30mins)') {
     text = '打機 #wife 5**';
-    redeemAmount = 5;
   } else {
     alert('Unknown reward option'); return;
   }
-
   selectedCategory = 'Reward';
   selectedSubCategory = '';
   const note = buildEntry(text, ''); // force NO auto tags; exact requested text only
   sendToShortcuts(encodeURIComponent(note));
-
-  // 同步觸發 ticket-draw 兌換
-  if (redeemAmount > 0){
-    openTicketRedeem(redeemAmount);
-  }
-
   goHome();
 }
 </script>
