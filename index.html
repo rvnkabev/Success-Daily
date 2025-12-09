@@ -159,8 +159,10 @@
   </div>
   <textarea id="healthNotes" placeholder="Optional notes (diet, symptoms, meds, etc.)"></textarea>
   <button onclick="saveHealth()">Save</button>
-  <!-- NEW button: dip face into ice water -->
+  <!-- Dip face into ice water -->
   <button onclick="logIceWater()" style="margin-left:6px;">Dip face into ice water</button>
+  <!-- NEW: Cold shower quick log -->
+  <button onclick="logColdShower()" style="margin-left:6px;">Cold shower</button>
   <button onclick="goHome()" style="margin-left:6px;">Cancel</button>
 </div>
 
@@ -500,9 +502,9 @@ function saveHealth() {
   selectedSubCategory = '';
   const note = buildEntry(text);
 
-  // Health: SuccessDaily + ADHD KSM66 and coffee
+  // Health: only SuccessDaily
   sendToShortcuts(encodeURIComponent(note), {
-    shortcuts: ["SaveToSuccessDaily","SaveToADHD KSM66 and coffee"]
+    shortcuts: ["SaveToSuccessDaily"]
   });
 }
 
@@ -512,9 +514,21 @@ function logIceWater() {
   selectedSubCategory = '';
   const text = 'Ice water wash face';
   const note = buildEntry(text);
-  // 只寫入臉部相關記錄的 Shortcut
+  // 臉部相關記錄：SuccessDaily + Facial photo record
   sendToShortcuts(encodeURIComponent(note), {
     shortcuts: ["SaveToSuccessDaily","SaveToFacial photo record"]
+  });
+  goHome();
+}
+
+/** NEW: quick log for cold shower (Health → SuccessDaily only) **/
+function logColdShower() {
+  selectedCategory = 'Health';
+  selectedSubCategory = '';
+  const text = 'Cold shower';
+  const note = buildEntry(text);
+  sendToShortcuts(encodeURIComponent(note), {
+    shortcuts: ["SaveToSuccessDaily"]
   });
   goHome();
 }
