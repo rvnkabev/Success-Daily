@@ -203,10 +203,11 @@ const categoryMap = {
   Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
   Finance: [],
   Work: ["A12", "MEWP", "Communication", "Other"],
-  Pomodoro: ["English", "Finance", "Reading", "Review", "Work"],  // ✅ UPDATED: add Work
+  // ✅ UPDATED: Pomodoro — remove English/Reading, add Layer 4 Use Unknown
+  Pomodoro: ["Finance", "Review", "Work", "Layer 4 Use Unknown"],
   TonightToDoList: [],
-  PainAnxietyDaily: [],                 // NEW main category (free text, special tag)
-  Reward: ["抱石美女", "打機老婆（30mins)"], // NEW main category with 2 quick actions
+  PainAnxietyDaily: [],
+  Reward: ["抱石美女", "打機老婆（30mins)"],
   Other: []
 };
 
@@ -224,8 +225,8 @@ let selectedRelPerson = '';
 let selectedRelSecondTag = '';
 
 /** NEW: dopamine token holder **/
-let selectedDopaToken = '';  // e.g. '[[Low Dopamine]]'
-let selectedDopaLabel = '';  // UI-only label without [[...]]
+let selectedDopaToken = '';
+let selectedDopaLabel = '';
 
 /** ---------- Time helpers ---------- **/
 const fmtTime = () => {
@@ -254,7 +255,7 @@ function selectCategory(cat) {
   if (cat === 'Health') return gotoHealth();
   if (cat === 'TonightToDoList') return gotoTodo();
 
-  // NEW: Reward → show two quick actions
+  // Reward → show two quick actions
   if (cat === 'Reward') {
     buildSubButtons(categoryMap.Reward);
     hidePages(); document.getElementById('pageSub').classList.add('active');
@@ -271,7 +272,6 @@ function selectCategory(cat) {
     buildSubButtons(subs);
     hidePages(); document.getElementById('pageSub').classList.add('active');
   } else {
-    // Default: free text input
     gotoInput();
   }
 }
@@ -279,7 +279,6 @@ function selectCategory(cat) {
 function buildSubButtons(arr) {
   const wrap = document.getElementById('subButtons');
   wrap.innerHTML = '';
-  // Display label tweak for Pain/anxietyDaily
   const pretty = selectedCategory === 'PainAnxietyDaily' ? 'Pain/anxietyDaily' : selectedCategory;
   document.getElementById('subCategoryTitle').textContent = pretty;
   arr.forEach(s => {
@@ -298,7 +297,7 @@ function selectSubCategory(sub) {
     return gotoDopamineAction();
   }
 
-  // NEW: Reward quick save paths
+  // Reward quick save paths
   if (selectedCategory === 'Reward') {
     return saveReward(sub);
   }
@@ -308,6 +307,7 @@ function selectSubCategory(sub) {
     showRelSecondTags(sub);
     return;
   }
+
   if (selectedCategory === 'Pomodoro') {
     logPomodoro();
   } else {
@@ -421,7 +421,7 @@ function buildEntry(text, forceTags=null) {
   const date = fmtDate(), time = fmtTime();
   let tags;
   if (forceTags !== null) {
-    tags = forceTags; // exact tags or '' for none
+    tags = forceTags;
   } else {
     const auto = [
       `#${(selectedCategory || '').toLowerCase()}`,
@@ -446,10 +446,8 @@ function sendToShortcuts(encodedText, opts) {
   names.forEach((name, idx) => {
     const url = `shortcuts://run-shortcut?name=${encodeURIComponent(name)}&input=text&text=${encodedText}`;
     if (idx === 0) {
-      // 第一個先觸發
       window.open(url);
     } else {
-      // 之後的用延時觸發，避免互相打架
       setTimeout(() => { window.location.href = url; }, 600 * idx);
     }
   });
@@ -468,7 +466,6 @@ function saveToNotes() {
   );
 
   if (selectedCategory === 'Finance') {
-    // Finance: SuccessDaily + Investment
     sendToShortcuts(encoded, { shortcuts: ["SaveToSuccessDaily","SaveToInvestment"] });
   } else {
     sendToShortcuts(encoded);
@@ -502,26 +499,24 @@ function saveHealth() {
   selectedSubCategory = '';
   const note = buildEntry(text);
 
-  // Health: only SuccessDaily
   sendToShortcuts(encodeURIComponent(note), {
     shortcuts: ["SaveToSuccessDaily"]
   });
 }
 
-/** NEW: quick log for "dip face into ice water" **/
+/** quick log for "dip face into ice water" **/
 function logIceWater() {
   selectedCategory = 'Health';
   selectedSubCategory = '';
   const text = 'Ice water wash face';
   const note = buildEntry(text);
-  // 臉部相關記錄：SuccessDaily + Facial photo record
   sendToShortcuts(encodeURIComponent(note), {
     shortcuts: ["SaveToSuccessDaily","SaveToFacial photo record"]
   });
   goHome();
 }
 
-/** NEW: quick log for cold shower (Health → SuccessDaily only) **/
+/** quick log for cold shower **/
 function logColdShower() {
   selectedCategory = 'Health';
   selectedSubCategory = '';
@@ -566,9 +561,8 @@ function gotoDopamineAction() {
 }
 
 function chooseDopa(token, label){
-  // Step 1 -> Step 2
-  selectedDopaToken = token;        // e.g. [[Low Dopamine]]
-  selectedDopaLabel = label;        // UI-only (no [[ ]])
+  selectedDopaToken = token;
+  selectedDopaLabel = label;
   hidePages();
   document.getElementById('dopaFormTitle').textContent = `Dopamine Action — ${selectedDopaLabel}`;
   document.getElementById('dopaFormTime').textContent = `${fmtDate()} ${fmtTime()}`;
@@ -579,7 +573,6 @@ function chooseDopa(token, label){
 function saveDopaEvent(){
   const eventText = (document.getElementById('dopaEvent').value || '').trim();
   if(!eventText){ alert('請輸入事件內容'); return; }
-  // 背景記錄 token，不在頁面顯示
   selectedCategory = 'MentalHealth';
   selectedSubCategory = 'DopamineAction';
   const text = `${sanitizeInline(eventText)} ${selectedDopaToken}`;
@@ -590,9 +583,8 @@ function saveDopaEvent(){
   goHome();
 }
 
-/** ---------- NEW: Reward quick saves ---------- **/
+/** ---------- Reward quick saves ---------- **/
 function saveReward(choice){
-  // Map choices to exact note text + (no extra tags)
   let text = '';
   if (choice === '抱石美女') {
     text = '享受 #抱石美女 60**';
@@ -603,7 +595,7 @@ function saveReward(choice){
   }
   selectedCategory = 'Reward';
   selectedSubCategory = '';
-  const note = buildEntry(text, ''); // force NO auto tags; exact requested text only
+  const note = buildEntry(text, ''); // NO auto tags
   sendToShortcuts(encodeURIComponent(note));
   goHome();
 }
