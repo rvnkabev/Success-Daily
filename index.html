@@ -147,7 +147,7 @@
       <input type="time" id="onBedTime" />
       <div class="hint">Default 9:30pm</div>
     </div>
-    <div>
+     <div>
       <label for="energy" class="small">Energy (1–10)</label>
       <select id="energy">
         <option value="1">1</option><option value="2">2</option><option value="3">3</option>
@@ -203,11 +203,12 @@ const categoryMap = {
   Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
   Finance: [],
   Work: ["A12", "MEWP", "Communication", "Other"],
-  // ✅ UPDATED: Pomodoro — remove English/Reading, add Layer 4 Use Unknown
-  Pomodoro: ["Finance", "Review", "Work", "Layer 4 Use Unknown"],
+  // ✅ UPDATED: Pomodoro — add Reset
+  Pomodoro: ["Finance", "Review", "Work", "Layer 4 Use Unknown", "Reset"],
   TonightToDoList: [],
   PainAnxietyDaily: [],
-  Reward: ["抱石美女", "打機老婆（30mins)"],
+  // ✅ UPDATED: Reward — add Beer
+  Reward: ["抱石美女", "打機老婆（30mins)", "Beer"],
   Other: []
 };
 
@@ -309,7 +310,12 @@ function selectSubCategory(sub) {
   }
 
   if (selectedCategory === 'Pomodoro') {
-    logPomodoro();
+    // ✅ NEW: special handling for Reset
+    if (sub === 'Reset') {
+      logPomodoroReset();
+    } else {
+      logPomodoro();
+    }
   } else {
     gotoInput();
   }
@@ -479,6 +485,13 @@ function logPomodoro() {
   goHome();
 }
 
+/** ✅ NEW: Pomodoro reset log **/
+function logPomodoroReset() {
+  const note = buildEntry('Pomodoro reset');
+  sendToShortcuts(encodeURIComponent(note));
+  goHome();
+}
+
 /** Health structured save **/
 function saveHealth() {
   const hours = parseInt((document.getElementById('sleepHours').value || '').trim(), 10);
@@ -590,6 +603,8 @@ function saveReward(choice){
     text = '享受 #抱石美女 60**';
   } else if (choice === '打機老婆（30mins)') {
     text = '打機 #wife 5**';
+  } else if (choice === 'Beer') {
+    text = '飲啤酒 3**';
   } else {
     alert('Unknown reward option'); return;
   }
