@@ -31,7 +31,6 @@
     .hint{font-size: 60%; color:#666; margin-top:-0.4em}
     .small{font-size: 70%;}
 
-    /* ===== Mobile-friendly ToDo cards ===== */
     .todo-wrap { text-align:left; max-width:640px; margin:0 auto; }
     .toolbar { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0.2em 0 0.6em; }
     .toolbar button { padding: 0.4em 0.8em; font-size: 80%; }
@@ -81,7 +80,6 @@
   <button onclick="selectCategory('Work')">Work</button>
   <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
   <button onclick="selectCategory('TonightToDoList')">Tonight ToDoList</button>
-  <button onclick="selectCategory('PainAnxietyDaily')">Pain/anxietyDaily</button>
   <button onclick="selectCategory('Reward')">Reward</button>
   <button onclick="selectCategory('Other')">Other</button>
 </div>
@@ -98,7 +96,7 @@
   <div id="relTagButtons"></div>
 </div>
 
-<!-- NEW: Dopamine Action step 1 (choose level) -->
+<!-- Dopamine Action step 1 -->
 <div class="page" id="pageDopa">
   <h2>MentalHealth — Dopamine Action</h2>
   <div class="row" style="justify-content:center">
@@ -110,7 +108,7 @@
   <button style="margin-top:10px;" onclick="goHome()">Cancel</button>
 </div>
 
-<!-- NEW: Dopamine Action step 2 (enter event) -->
+<!-- Dopamine Action step 2 -->
 <div class="page" id="pageDopaForm">
   <h2 id="dopaFormTitle">Dopamine Action</h2>
   <p class="small" id="dopaFormTime"></p>
@@ -147,7 +145,7 @@
       <input type="time" id="onBedTime" />
       <div class="hint">Default 9:30pm</div>
     </div>
-     <div>
+    <div>
       <label for="energy" class="small">Energy (1–10)</label>
       <select id="energy">
         <option value="1">1</option><option value="2">2</option><option value="3">3</option>
@@ -159,14 +157,12 @@
   </div>
   <textarea id="healthNotes" placeholder="Optional notes (diet, symptoms, meds, etc.)"></textarea>
   <button onclick="saveHealth()">Save</button>
-  <!-- Dip face into ice water -->
   <button onclick="logIceWater()" style="margin-left:6px;">Dip face into ice water</button>
-  <!-- NEW: Cold shower quick log -->
   <button onclick="logColdShower()" style="margin-left:6px;">Cold shower</button>
   <button onclick="goHome()" style="margin-left:6px;">Cancel</button>
 </div>
 
-<!-- 5 - Tonight ToDoList (MOBILE-FIRST) -->
+<!-- 5 - Tonight ToDoList -->
 <div class="page" id="pageTodo">
   <h2>Tonight ToDoList</h2>
   <div class="small" id="todoDateTime"></div>
@@ -196,18 +192,14 @@
 </div>
 
 <script>
-/** ---------- Config ---------- **/
 const categoryMap = {
   Health: [],
   MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "DopamineAction", "Other"],
   Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
   Finance: [],
   Work: ["A12", "MEWP", "Communication", "Other"],
-  // ✅ UPDATED: Pomodoro — add Reset
   Pomodoro: ["Finance", "Review", "Work", "Layer 4 Use Unknown", "Reset"],
   TonightToDoList: [],
-  PainAnxietyDaily: [],
-  // ✅ UPDATED: Reward — add Beer
   Reward: ["抱石美女", "打機老婆（30mins)", "Beer"],
   Other: []
 };
@@ -215,21 +207,13 @@ const categoryMap = {
 const relationshipPersons = new Set(["HappyWifeHappyLife","Friendship","Father","Mother","Wife","Other"]);
 const relSecondTags = ["#eat", "#desire"];
 
-/** NEW: Tag override map for exact tags (case-sensitive / with slash) **/
-const tagOverrideByCategory = {
-  PainAnxietyDaily: "#Pain/anxietyDaily"
-};
-
 let selectedCategory = '';
 let selectedSubCategory = '';
 let selectedRelPerson = '';
 let selectedRelSecondTag = '';
-
-/** NEW: dopamine token holder **/
 let selectedDopaToken = '';
 let selectedDopaLabel = '';
 
-/** ---------- Time helpers ---------- **/
 const fmtTime = () => {
   const d = new Date();
   let h = d.getHours(), m = d.getMinutes().toString().padStart(2, '0');
@@ -237,16 +221,15 @@ const fmtTime = () => {
   h = h % 12 || 12;
   return `${h}:${m}${am}`;
 };
+
 const fmtDate = () => {
   const now = new Date();
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 };
 
-/** ---------- UI helpers ---------- **/
 const hidePages = () => document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
 const goHome = () => { hidePages(); document.getElementById('page1').classList.add('active'); };
 
-/** ---------- Category flow ---------- **/
 function selectCategory(cat) {
   selectedCategory = cat;
   selectedSubCategory = '';
@@ -256,22 +239,25 @@ function selectCategory(cat) {
   if (cat === 'Health') return gotoHealth();
   if (cat === 'TonightToDoList') return gotoTodo();
 
-  // Reward → show two quick actions
   if (cat === 'Reward') {
     buildSubButtons(categoryMap.Reward);
-    hidePages(); document.getElementById('pageSub').classList.add('active');
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
     return;
   }
 
   const subs = categoryMap[cat] || [];
   if (cat === 'Pomodoro') {
     buildSubButtons(subs);
-    hidePages(); document.getElementById('pageSub').classList.add('active');
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
     return;
   }
+
   if (subs.length > 0) {
     buildSubButtons(subs);
-    hidePages(); document.getElementById('pageSub').classList.add('active');
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
   } else {
     gotoInput();
   }
@@ -280,8 +266,7 @@ function selectCategory(cat) {
 function buildSubButtons(arr) {
   const wrap = document.getElementById('subButtons');
   wrap.innerHTML = '';
-  const pretty = selectedCategory === 'PainAnxietyDaily' ? 'Pain/anxietyDaily' : selectedCategory;
-  document.getElementById('subCategoryTitle').textContent = pretty;
+  document.getElementById('subCategoryTitle').textContent = selectedCategory;
   arr.forEach(s => {
     const b = document.createElement('button');
     b.textContent = s;
@@ -293,12 +278,10 @@ function buildSubButtons(arr) {
 function selectSubCategory(sub) {
   selectedSubCategory = sub;
 
-  // MentalHealth special: Dopamine Action page -> step 1
   if (selectedCategory === 'MentalHealth' && sub === 'DopamineAction') {
     return gotoDopamineAction();
   }
 
-  // Reward quick save paths
   if (selectedCategory === 'Reward') {
     return saveReward(sub);
   }
@@ -310,7 +293,6 @@ function selectSubCategory(sub) {
   }
 
   if (selectedCategory === 'Pomodoro') {
-    // ✅ NEW: special handling for Reset
     if (sub === 'Reset') {
       logPomodoroReset();
     } else {
@@ -341,8 +323,7 @@ function showRelSecondTags(person) {
 
 function gotoInput(showAutoHint=false) {
   hidePages();
-  const labelRaw = selectedSubCategory ? `${selectedCategory}/${selectedSubCategory}` : selectedCategory;
-  const label = labelRaw === 'PainAnxietyDaily' ? 'Pain/anxietyDaily' : labelRaw;
+  const label = selectedSubCategory ? `${selectedCategory}/${selectedSubCategory}` : selectedCategory;
   document.getElementById('selectedCategoryLabel').textContent = label;
   document.getElementById('currentTime').textContent = fmtTime();
   document.getElementById('content').value = '';
@@ -350,7 +331,6 @@ function gotoInput(showAutoHint=false) {
   document.getElementById('pageInput').classList.add('active');
 }
 
-/** ---------- Health page ---------- **/
 function gotoHealth() {
   hidePages();
   document.getElementById('sleepHours').value = '7';
@@ -361,7 +341,6 @@ function gotoHealth() {
   document.getElementById('pageHealth').classList.add('active');
 }
 
-/** ---------- Tonight ToDoList (mobile-first) ---------- **/
 const DEFAULT_TODOS = [
   { text: "買雞" },
   { text: "整雞水", tag:"1.5hr" },
@@ -387,7 +366,7 @@ function addTodoCard(item) {
   label.className = 'card';
   label.innerHTML = `
     <input type="checkbox" id="${id}">
-    <div class="text">${escapeHTML(item.text)}${item.tag?` <span class="chip">${escapeHTML(item.tag)}</span>`:''}</div>
+    <div class="text">${escapeHTML(item.text)}${item.tag ? ` <span class="chip">${escapeHTML(item.tag)}</span>` : ''}</div>
   `;
   label.addEventListener('click', (e) => {
     if (e.target.tagName.toLowerCase() !== 'input') {
@@ -415,6 +394,7 @@ function selectAllTodos() {
     cb.closest('.card').classList.add('selected');
   });
 }
+
 function clearAllTodos() {
   document.querySelectorAll('#todoCards .card input[type="checkbox"]').forEach(cb => {
     cb.checked = false;
@@ -422,7 +402,6 @@ function clearAllTodos() {
   });
 }
 
-/** ---------- Note building & saving ---------- **/
 function buildEntry(text, forceTags=null) {
   const date = fmtDate(), time = fmtTime();
   let tags;
@@ -439,11 +418,6 @@ function buildEntry(text, forceTags=null) {
   return `[${date}\n${time} ｜ ${text}${tagPart}]`;
 }
 
-/**
- * Generalized shortcut sender
- * encodedText: 已經 encodeURIComponent() 過的文字
- * opts.shortcuts: 陣列，例如 ["SaveToSuccessDaily","SaveToInvestment"]
- */
 function sendToShortcuts(encodedText, opts) {
   const names = (opts && Array.isArray(opts.shortcuts) && opts.shortcuts.length)
     ? opts.shortcuts
@@ -459,17 +433,12 @@ function sendToShortcuts(encodedText, opts) {
   });
 }
 
-/** Generic free-text save **/
 function saveToNotes() {
   let txt = document.getElementById('content').value.trim();
   if (!txt) { alert("Please enter something!"); return; }
   txt = txt.replace(/#review\]/gi, '#review');
 
-  const encoded = encodeURIComponent(
-    selectedCategory === 'PainAnxietyDaily'
-      ? buildEntry(txt, tagOverrideByCategory.PainAnxietyDaily)
-      : buildEntry(txt)
-  );
+  const encoded = encodeURIComponent(buildEntry(txt));
 
   if (selectedCategory === 'Finance') {
     sendToShortcuts(encoded, { shortcuts: ["SaveToSuccessDaily","SaveToInvestment"] });
@@ -478,21 +447,18 @@ function saveToNotes() {
   }
 }
 
-/** Pomodoro quick log **/
 function logPomodoro() {
   const note = buildEntry('25mins');
   sendToShortcuts(encodeURIComponent(note));
   goHome();
 }
 
-/** ✅ NEW: Pomodoro reset log **/
 function logPomodoroReset() {
   const note = buildEntry('Pomodoro reset');
   sendToShortcuts(encodeURIComponent(note));
   goHome();
 }
 
-/** Health structured save **/
 function saveHealth() {
   const hours = parseInt((document.getElementById('sleepHours').value || '').trim(), 10);
   const onBed = (document.getElementById('onBedTime').value || '').trim();
@@ -517,7 +483,6 @@ function saveHealth() {
   });
 }
 
-/** quick log for "dip face into ice water" **/
 function logIceWater() {
   selectedCategory = 'Health';
   selectedSubCategory = '';
@@ -529,7 +494,6 @@ function logIceWater() {
   goHome();
 }
 
-/** quick log for cold shower **/
 function logColdShower() {
   selectedCategory = 'Health';
   selectedSubCategory = '';
@@ -541,7 +505,6 @@ function logColdShower() {
   goHome();
 }
 
-/** Tonight save */
 function saveTonight(state) {
   const picked = Array.from(document.querySelectorAll('#todoCards .card'))
     .filter(card => card.querySelector('input').checked)
@@ -556,7 +519,6 @@ function saveTonight(state) {
   sendToShortcuts(encodeURIComponent(note));
 }
 
-/** helpers **/
 function toHumanTime(hhmm) {
   const [hStr, mStr] = hhmm.split(':');
   let h = parseInt(hStr, 10);
@@ -564,10 +526,21 @@ function toHumanTime(hhmm) {
   h = h % 12 || 12;
   return `${h}:${mStr}${ampm}`;
 }
-function sanitizeInline(s) { return s.replace(/\n+/g, ' ').replace(/\]/g, ')'); }
-function escapeHTML(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-/** ---------- Dopamine Action (MentalHealth) ---------- **/
+function sanitizeInline(s) {
+  return s.replace(/\n+/g, ' ').replace(/\]/g, ')');
+}
+
+function escapeHTML(s){
+  return s.replace(/[&<>"']/g, c => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[c]));
+}
+
 function gotoDopamineAction() {
   hidePages();
   document.getElementById('pageDopa').classList.add('active');
@@ -596,7 +569,6 @@ function saveDopaEvent(){
   goHome();
 }
 
-/** ---------- Reward quick saves ---------- **/
 function saveReward(choice){
   let text = '';
   if (choice === '抱石美女') {
@@ -606,11 +578,12 @@ function saveReward(choice){
   } else if (choice === 'Beer') {
     text = '飲啤酒 10**';
   } else {
-    alert('Unknown reward option'); return;
+    alert('Unknown reward option');
+    return;
   }
   selectedCategory = 'Reward';
   selectedSubCategory = '';
-  const note = buildEntry(text, ''); // NO auto tags
+  const note = buildEntry(text, '');
   sendToShortcuts(encodeURIComponent(note));
   goHome();
 }
