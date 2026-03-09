@@ -1,974 +1,592 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
+  <title>Success Diary</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Main Planner — Plan / Today ToDoList / Arrangement</title>
   <style>
-    :root{
-      --bg:#0b1020; --bg2:#111936; --panel:#141a33; --ink:#e9eefc; --muted:#a8b6f5;
-      --accent:#7aa2ff; --ok:#2ad1a0; --warn:#ffb02e; --danger:#ff5a78; --line:#263565;
-    }
-    *{box-sizing:border-box}
     body{
-      margin:0;
-      background:linear-gradient(180deg,var(--bg),var(--bg2));
-      color:var(--ink);
-      font-family:ui-sans-serif,system-ui,"PingFang TC","Noto Sans TC",Segoe UI,Roboto,Helvetica,Arial;
+      font-family: Arial, sans-serif;
+      padding: 1em;
+      background: #f9f9f9;
+      font-size: 240%;
+      text-align: center;
     }
-    .wrap{max-width:1100px;margin:0 auto;padding:20px}
-    h1,h2,h3{margin:0 0 12px}
-    .sub{color:var(--muted);font-size:.95rem}
-    .page{display:none}
-    .page.active{display:block}
-    .panel{
-      background:var(--panel);
-      border:1px solid #223061;
-      border-radius:16px;
-      padding:16px;
-      margin:12px 0;
-      box-shadow:0 8px 24px rgba(0,0,0,.15);
+    .page{display:none;}
+    .active{display:block;}
+    button{
+      margin: 0.4em;
+      padding: 0.3em 1em;
+      font-size: 90%;
+      cursor: pointer;
     }
-    .grid{display:grid;gap:12px}
-    .grid-3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-    .grid-2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-    .hero-btn, button{
-      padding:12px 14px;border-radius:12px;border:1px solid #2a3767;background:#0e142b;color:var(--ink);
-      cursor:pointer;font-size:1rem
+    input,textarea,select{
+      width: 90%;
+      padding: 0.5em;
+      font-size: 90%;
+      margin: 0.6em 0;
     }
-    .hero-btn{min-height:92px;text-align:left}
-    .hero-btn strong{display:block;font-size:1.05rem;margin-bottom:6px}
-    .btn{background:var(--accent);border:none;font-weight:700}
-    .btn-ok{background:var(--ok);border:none;color:#07271d;font-weight:700}
-    .btn-danger{background:var(--danger);border:none;font-weight:700}
-    .btn-row,.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    .row > *{flex:1 1 220px}
-    label{display:block;margin:8px 0 6px;color:var(--muted);font-size:.95rem}
-    input,textarea,select{width:100%;padding:12px;border-radius:10px;border:1px solid #2a3767;background:#0e142b;color:var(--ink);font-size:1rem}
-    textarea{min-height:110px;resize:vertical}
-    .small{font-size:.85rem;color:var(--muted)}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
-    .hint{color:var(--muted);font-size:.92rem}
-    .pill{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid #2a3767;background:#0e142b;margin:2px 6px 2px 0;font-size:.82rem}
-    .tag-ok,.tag-warn,.tag-danger{
-      display:inline-block;padding:2px 8px;border-radius:999px;font-size:.8rem;border:1px solid transparent
+    .row{ display:flex; gap:0.6em; justify-content:center; align-items:center; flex-wrap:wrap; }
+    .row > * { flex:1 1 240px; max-width:480px; }
+    .hint{font-size: 60%; color:#666; margin-top:-0.4em}
+    .small{font-size: 70%;}
+
+    .todo-wrap { text-align:left; max-width:640px; margin:0 auto; }
+    .toolbar { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:0.2em 0 0.6em; }
+    .toolbar button { padding: 0.4em 0.8em; font-size: 80%; }
+
+    .todo-input { display:flex; gap:8px; align-items:center; justify-content:center; }
+    .todo-input input { flex: 1 1 auto; max-width:none; }
+    .todo-input button { padding:0.4em 0.8em; font-size: 90%; }
+
+    .cards { display:grid; grid-template-columns: 1fr; gap:12px; }
+    @media (min-width:420px){ .cards { grid-template-columns: 1fr 1fr; } }
+
+    .card {
+      display:flex; align-items:center; gap:12px;
+      background:#fff; border-radius:14px; border:1px solid #ddd;
+      padding:14px 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      min-height:56px;
     }
-    .tag-ok{border-color:#164932;background:#0f2b1e;color:#7dffca}
-    .tag-warn{border-color:#57401a;background:#2b1e0e;color:#ffd37a}
-    .tag-danger{border-color:#5c1c2c;background:#2d1018;color:#ff9aad}
-    .cards{display:grid;grid-template-columns:1fr;gap:12px}
-    @media (min-width:760px){ .cards.two{grid-template-columns:1fr 1fr} }
-    .card{
-      background:#0e142b;border:1px solid var(--line);border-radius:14px;padding:14px;
+    .card input[type="checkbox"] { width:26px; height:26px; }
+    .card .text { font-size: 80%; line-height:1.2; }
+    .chip { display:inline-block; border:1px solid #ccc; border-radius:999px; padding:0.05em 0.5em; font-size:65%; margin-left:6px; color:#666; }
+
+    .card.selected { border-color:#7aa2ff; box-shadow:0 0 0 3px rgba(122,162,255,0.2); }
+
+    .sticky-bar {
+      position: sticky; bottom:0; left:0; right:0;
+      background: #f9f9f9;
+      padding: 8px 6px 2px;
+      margin-top: 8px;
     }
-    .todo-card{
-      display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;
-      background:#0e142b;border:1px solid var(--line);border-radius:14px;padding:14px;
-    }
-    .todo-card.done{opacity:.72;border-color:#215b49}
-    .todo-card.selected{outline:2px solid var(--accent)}
-    .todo-title{font-size:1rem;line-height:1.35}
-    .todo-meta{font-size:.8rem;color:var(--muted);margin-top:4px}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .stat{display:flex;gap:12px;flex-wrap:wrap}
-    .stat .box{flex:1 1 180px;background:#0e142b;border:1px solid var(--line);border-radius:12px;padding:12px}
-    .chips{display:flex;flex-wrap:wrap;gap:8px}
-    .chip{padding:8px 12px;border:1px solid #2a3767;border-radius:999px;background:#0e142b;cursor:pointer;user-select:none}
-    .chip.selected{outline:2px solid var(--accent)}
-    .rank-group{display:flex;gap:8px;flex-wrap:wrap}
-    .rank{width:42px;height:42px;border-radius:10px;border:1px solid #2a3767;background:#0e142b;cursor:pointer;font-weight:700}
-    .rank.selected{outline:2px solid var(--accent)}
-    .draglist{list-style:none;padding:0;margin:0}
-    .draglist li{display:grid;grid-template-columns:28px 1fr 120px 140px;gap:8px;align-items:center;padding:10px;border:1px dashed #2a3767;border-radius:12px;margin:8px 0;background:#0e142b}
-    .handle{cursor:grab;user-select:none;touch-action:none}
-    .ghost{opacity:.45}
-    .sticky-footer{position:sticky;bottom:0;background:linear-gradient(180deg,#101736,#0b1020);padding:12px;border-top:1px solid #223061;margin-top:18px}
-    .empty{padding:18px;text-align:center;color:var(--muted)}
-    .sep{height:1px;background:#223061;margin:10px 0}
-    .right{text-align:right}
-    .center{text-align:center}
+    .sticky-actions { display:flex; gap:10px; justify-content:center; }
+    .primary { background:#7aa2ff; color:#fff; border:none; border-radius:10px; padding:0.5em 0.9em; }
+    .success { background:#25d0a6; color:#fff; border:none; border-radius:10px; padding:0.5em 0.9em; }
+
+    .pill{display:inline-block; border:1px solid #ccc; border-radius:999px; padding:0.2em 0.6em; margin:0.2em; font-size:80%;}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Main Planner</h1>
-    <div class="sub">整合三個主頁：Plan、Today ToDoList、Arrangement。全部資料以瀏覽器 localStorage 保存，不需要手動貼 Step 1 原文。</div>
 
-    <!-- Home -->
-    <section id="pageHome" class="page active">
-      <div class="panel">
-        <h2>首頁</h2>
-        <div class="grid grid-3">
-          <button class="hero-btn" onclick="showPage('pagePlan')">
-            <strong>Plan</strong>
-            使用 Success Daily TonightToDoList 風格去建立今晚任務，儲存後自動送到 Today ToDoList。
-          </button>
-          <button class="hero-btn" onclick="showPage('pageToday')">
-            <strong>Today ToDoList</strong>
-            顯示今天任務，支援 Planned / Done，並保留最近 24 小時紀錄。
-          </button>
-          <button class="hero-btn" onclick="openArrangementFromStoredData()">
-            <strong>Arrangement</strong>
-            直接讀取 Today ToDoList 作為 Step 1 資料，自動排程，不需要手動輸入原始日誌。
-          </button>
-        </div>
-      </div>
+<!-- 1 - Main categories -->
+<div class="page active" id="page1">
+  <h2>Select Main Category</h2>
+  <button onclick="selectCategory('Health')">Health</button>
+  <button onclick="selectCategory('MentalHealth')">Mental&nbsp;Health</button>
+  <button onclick="selectCategory('Relationship')">Relationship</button>
+  <button onclick="selectCategory('Finance')">Finance</button>
+  <button onclick="selectCategory('Work')">Work</button>
+  <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
+  <button onclick="selectCategory('TonightToDoList')">Tonight ToDoList</button>
+  <button onclick="selectCategory('Reward')">Reward</button>
+  <button onclick="selectCategory('Other')">Other</button>
+</div>
 
-      <div class="panel">
-        <div class="stat">
-          <div class="box"><div class="small">今天任務數</div><div id="homeTodayCount" class="mono">0</div></div>
-          <div class="box"><div class="small">今天已完成</div><div id="homeDoneCount" class="mono">0</div></div>
-          <div class="box"><div class="small">最近 24 小時紀錄</div><div id="home24Count" class="mono">0</div></div>
-        </div>
-      </div>
-    </section>
+<!-- 2 - Sub-categories (generic) -->
+<div class="page" id="pageSub">
+  <h2 id="subCategoryTitle"></h2>
+  <div id="subButtons"></div>
+</div>
 
-    <!-- Plan -->
-    <section id="pagePlan" class="page">
-      <div class="panel">
-        <div class="btn-row">
-          <button onclick="goHome()">← Home</button>
-          <button class="btn" onclick="gotoPlanBuilder()">重新載入預設任務</button>
-        </div>
-        <h2>Plan</h2>
-        <div class="small">沿用 Success Daily TonightToDoList 思路：建立今晚任務，按一下就送去 Today ToDoList。</div>
-      </div>
+<!-- 2b - Relationship tag layer (#eat / #desire) -->
+<div class="page" id="pageRelTags">
+  <h2 id="relTagTitle"></h2>
+  <div id="relTagButtons"></div>
+</div>
 
-      <div class="panel">
-        <div class="small" id="planDateTime"></div>
-        <div class="toolbar">
-          <button onclick="selectAllPlanTodos()">全選</button>
-          <button onclick="clearAllPlanTodos()">清空</button>
-        </div>
+<!-- Dopamine Action step 1 -->
+<div class="page" id="pageDopa">
+  <h2>MentalHealth — Dopamine Action</h2>
+  <div class="row" style="justify-content:center">
+    <button class="pill" onclick="chooseDopa('[[Low Dopamine]]','Low Dopamine')">Low Dopamine</button>
+    <button class="pill" onclick="chooseDopa('[[Middle Dopamine]]','Middle Dopamine')">Middle Dopamine</button>
+    <button class="pill" onclick="chooseDopa('[[High Dopamine]]','High Dopamine')">High Dopamine</button>
+    <button class="pill" onclick="chooseDopa('[[Chaos]]','Chaos')">Chaos</button>
+  </div>
+  <button style="margin-top:10px;" onclick="goHome()">Cancel</button>
+</div>
 
-        <div class="row">
-          <div>
-            <label for="planNewTodo">新增項目</label>
-            <input id="planNewTodo" type="text" placeholder="如：買雞、洗衫、運動 30mins" />
-          </div>
-          <div style="flex:0 0 120px">
-            <label>&nbsp;</label>
-            <button class="btn" onclick="addPlanTodoFromInput()">＋ 加入</button>
-          </div>
-        </div>
+<!-- Dopamine Action step 2 -->
+<div class="page" id="pageDopaForm">
+  <h2 id="dopaFormTitle">Dopamine Action</h2>
+  <p class="small" id="dopaFormTime"></p>
+  <input type="text" id="dopaEvent" placeholder="剛剛發生了什麼？（例：看股票波動、刷短片、想吃甜食…）" />
+  <div class="small" style="opacity:0.8">不顯示內部代碼；背景會附上等級標籤</div>
+  <button onclick="saveDopaEvent()">Save</button>
+  <button onclick="gotoDopamineAction()" style="margin-left:6px;">Back</button>
+</div>
 
-        <div id="planTodoCards" class="cards two" style="margin-top:12px"></div>
+<!-- 3 - Free-text input -->
+<div class="page" id="pageInput">
+  <h2 id="selectedCategoryLabel"></h2>
+  <p id="currentTime"></p>
+  <input type="text" id="content" placeholder="Describe here…" />
+  <div class="small" id="autoTagsHint"></div>
+  <button onclick="saveToNotes()">Save</button>
+</div>
 
-        <div class="sep"></div>
-        <div class="btn-row">
-          <button class="btn" onclick="savePlanToToday('planned')">儲存為 Planned → Today ToDoList</button>
-          <button class="btn-ok" onclick="savePlanToToday('done')">儲存為 Done → Today ToDoList</button>
-        </div>
-        <div class="small" style="margin-top:8px">會寫入今天任務池，Arrangement 會自動讀取這些任務。</div>
-      </div>
-    </section>
+<!-- 4 - Health form -->
+<div class="page" id="pageHealth">
+  <h2>Health — Daily Check-in</h2>
+  <p id="healthTime" class="small"></p>
+  <div class="row">
+    <div>
+      <label for="sleepHours" class="small">Sleeping hours</label>
+      <select id="sleepHours">
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+        <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
+        <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+      </select>
+    </div>
+    <div>
+      <label for="onBedTime" class="small">On bed time</label>
+      <input type="time" id="onBedTime" />
+      <div class="hint">Default 9:30pm</div>
+    </div>
+    <div>
+      <label for="energy" class="small">Energy (1–10)</label>
+      <select id="energy">
+        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+        <option value="7" selected>7</option><option value="8">8</option><option value="9">9</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+  </div>
+  <textarea id="healthNotes" placeholder="Optional notes (diet, symptoms, meds, etc.)"></textarea>
+  <button onclick="saveHealth()">Save</button>
+  <button onclick="logIceWater()" style="margin-left:6px;">Dip face into ice water</button>
+  <button onclick="logColdShower()" style="margin-left:6px;">Cold shower</button>
+  <button onclick="goHome()" style="margin-left:6px;">Cancel</button>
+</div>
 
-    <!-- Today -->
-    <section id="pageToday" class="page">
-      <div class="panel">
-        <div class="btn-row">
-          <button onclick="goHome()">← Home</button>
-          <button class="btn" onclick="refreshTodayPage()">重新整理</button>
-          <button class="btn-danger" onclick="clear24hHistory()">清除最近 24 小時紀錄</button>
-        </div>
-        <h2>Today ToDoList</h2>
-        <div class="small">顯示今天任務，並保留最近 24 小時紀錄。</div>
-      </div>
+<!-- 5 - Tonight ToDoList -->
+<div class="page" id="pageTodo">
+  <h2>Tonight ToDoList</h2>
+  <div class="small" id="todoDateTime"></div>
 
-      <div class="panel">
-        <div class="stat">
-          <div class="box"><div class="small">今天 Planned/Done</div><div id="todayStats1" class="mono">0 / 0</div></div>
-          <div class="box"><div class="small">今天總數</div><div id="todayStats2" class="mono">0</div></div>
-          <div class="box"><div class="small">最近 24 小時</div><div id="todayStats3" class="mono">0</div></div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h3>今天任務</h3>
-        <div id="todayList" class="cards"></div>
-      </div>
-
-      <div class="panel">
-        <h3>最近 24 小時紀錄</h3>
-        <div id="history24List" class="cards"></div>
-      </div>
-    </section>
-
-    <!-- Arrangement -->
-    <section id="pageArrangement" class="page">
-      <div class="panel">
-        <div class="btn-row">
-          <button onclick="goHome()">← Home</button>
-          <button onclick="showArrangementStep('arrStep2')">Step 2</button>
-          <button onclick="showArrangementStep('arrStep3')">Step 3</button>
-          <button onclick="showArrangementStep('arrStep4')">Step 4</button>
-        </div>
-        <h2>Arrangement</h2>
-        <div class="small">Step 1 直接使用 Today ToDoList 資料，不需要手動貼原始日誌。</div>
-      </div>
-
-      <!-- Step 1 -->
-      <section id="arrStep1" class="arr-step">
-        <div class="panel">
-          <h3>Step 1｜自動載入 Today ToDoList + 今晚時段</h3>
-          <div class="row">
-            <div>
-              <label for="homeTime">預計回到家時間（今天）</label>
-              <input id="homeTime" type="time" />
-            </div>
-            <div>
-              <label for="bedTime">上床時間（今天）</label>
-              <input id="bedTime" type="time" />
-            </div>
-          </div>
-          <div class="btn-row">
-            <button class="btn" onclick="loadArrangementTasksFromToday()">重新從 Today ToDoList 載入</button>
-            <button class="btn" onclick="prepareArrangementAndGoStep2()">載入任務 & 前往 Step 2</button>
-          </div>
-          <div id="detectedWrap" style="margin-top:10px;display:none">
-            <div class="hint">已偵測到以下今天任務：</div>
-            <div id="detected" class="mono"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Step 2 -->
-      <section id="arrStep2" class="arr-step" style="display:none">
-        <div class="panel">
-          <h3>Step 2｜友善填「預估時長」與「Rank」</h3>
-          <div class="hint">如果任務名稱已包含 30mins / 1hr / 1.5hr / 30分鐘 / 半小時，會自動填入。</div>
-        </div>
-        <div id="taskList" class="panel"></div>
-        <div class="btn-row">
-          <button onclick="showArrangementStep('arrStep1')">← 回 Step 1</button>
-          <button class="btn" onclick="saveArrangementStep2()">儲存 & 前往 Step 3</button>
-        </div>
-      </section>
-
-      <!-- Step 3 -->
-      <section id="arrStep3" class="arr-step" style="display:none">
-        <div class="panel">
-          <h3>Step 3｜是否能在上床前做完？</h3>
-          <div class="stat">
-            <div class="box"><div class="small">可用時間（分鐘）</div><div id="availMins" class="mono">—</div></div>
-            <div class="box"><div class="small">任務總時長（分鐘）</div><div id="totalMins" class="mono">—</div></div>
-            <div class="box"><div class="small">差額（可用−需求）</div><div id="deltaMins" class="mono">—</div></div>
-          </div>
-          <div id="fitMsg" class="hint" style="margin-top:10px">—</div>
-        </div>
-
-        <div class="panel">
-          <div class="btn-row">
-            <button class="btn" onclick="copyArrangementTimetable()">複製 Timetable</button>
-            <button class="btn" onclick="prepareReorderStep()">下一步 → 調整順序與時間</button>
-          </div>
-          <div class="small" style="margin-top:8px">Timetable 預覽</div>
-          <div id="timetable" class="mono" style="white-space:pre-wrap"></div>
-        </div>
-        <div class="btn-row">
-          <button onclick="showArrangementStep('arrStep2')">← 回 Step 2</button>
-        </div>
-      </section>
-
-      <!-- Step 4 -->
-      <section id="arrStep4" class="arr-step" style="display:none">
-        <div class="panel">
-          <h3>Step 4｜拖曳調整順序 & 直接改時間段</h3>
-          <div class="hint">
-            先確定任務次序，再修改開始時間或時長。某個任務改動後，之後任務會依序順延。
-          </div>
-        </div>
-        <div class="panel">
-          <ul id="reorderList" class="draglist"></ul>
-          <div class="btn-row">
-            <button onclick="showArrangementStep('arrStep3')">← 回 Step 3</button>
-            <button class="btn" onclick="finishArrangementStep4()">更新 Timetable & 回 Step 3</button>
-          </div>
-        </div>
-      </section>
-    </section>
-
-    <div class="panel">
-      <h3>開發測試</h3>
-      <div id="tests" class="mono small">—</div>
+  <div class="todo-wrap">
+    <div class="toolbar">
+      <button onclick="selectAllTodos()">全選</button>
+      <button onclick="clearAllTodos()">清空</button>
     </div>
 
-    <div class="sticky-footer small">今天日期：<span id="todayStr"></span></div>
+    <div class="todo-input">
+      <input id="todoNew" type="text" placeholder="新增項目…（如：買菜、洗衣）" />
+      <button onclick="addTodoFromInput()">＋</button>
+    </div>
+
+    <div class="cards" id="todoCards"></div>
+
+    <div class="sticky-bar">
+      <div class="sticky-actions">
+        <button class="primary" onclick="saveTonight('planned')">儲存為 Planned</button>
+        <button class="success" onclick="saveTonight('done')">儲存為 Done</button>
+      </div>
+      <div class="small" style="margin-top:4px;">可多選；儲存會寫入 #tonighttodolist 與 status</div>
+    </div>
   </div>
+  <button style="margin-top:10px;" onclick="goHome()">Cancel</button>
+</div>
 
-  <script>
-    // =========================
-    // 基本工具
-    // =========================
-    const STORAGE_KEYS = {
-      todayTodos: 'mainPlanner_todayTodos_v1',
-      history24: 'mainPlanner_history24_v1'
+<script>
+const categoryMap = {
+  Health: [],
+  MentalHealth: ["DelayGratification", "SelfControl", "ErrorLearning", "New", "Desire", "Anxiety", "DopamineAction", "Other"],
+  Relationship: ["HappyWifeHappyLife", "Friendship", "Father", "Mother", "Wife", "Other"],
+  Finance: [],
+  Work: ["A12", "MEWP", "Communication", "Other"],
+  Pomodoro: ["Finance", "Review", "Work", "Layer 4 Use Unknown", "Reset"],
+  TonightToDoList: [],
+  Reward: ["抱石美女", "打機老婆（30mins)", "Beer"],
+  Other: []
+};
+
+const relationshipPersons = new Set(["HappyWifeHappyLife","Friendship","Father","Mother","Wife","Other"]);
+const relSecondTags = ["#eat", "#desire"];
+
+let selectedCategory = '';
+let selectedSubCategory = '';
+let selectedRelPerson = '';
+let selectedRelSecondTag = '';
+let selectedDopaToken = '';
+let selectedDopaLabel = '';
+
+const fmtTime = () => {
+  const d = new Date();
+  let h = d.getHours(), m = d.getMinutes().toString().padStart(2, '0');
+  const am = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return `${h}:${m}${am}`;
+};
+
+const fmtDate = () => {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+};
+
+const hidePages = () => document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+const goHome = () => { hidePages(); document.getElementById('page1').classList.add('active'); };
+
+function selectCategory(cat) {
+  selectedCategory = cat;
+  selectedSubCategory = '';
+  selectedRelPerson = '';
+  selectedRelSecondTag = '';
+
+  if (cat === 'Health') return gotoHealth();
+  if (cat === 'TonightToDoList') return gotoTodo();
+
+  if (cat === 'Reward') {
+    buildSubButtons(categoryMap.Reward);
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
+    return;
+  }
+
+  const subs = categoryMap[cat] || [];
+  if (cat === 'Pomodoro') {
+    buildSubButtons(subs);
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
+    return;
+  }
+
+  if (subs.length > 0) {
+    buildSubButtons(subs);
+    hidePages();
+    document.getElementById('pageSub').classList.add('active');
+  } else {
+    gotoInput();
+  }
+}
+
+function buildSubButtons(arr) {
+  const wrap = document.getElementById('subButtons');
+  wrap.innerHTML = '';
+  document.getElementById('subCategoryTitle').textContent = selectedCategory;
+  arr.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s;
+    b.onclick = () => selectSubCategory(s);
+    wrap.appendChild(b);
+  });
+}
+
+function selectSubCategory(sub) {
+  selectedSubCategory = sub;
+
+  if (selectedCategory === 'MentalHealth' && sub === 'DopamineAction') {
+    return gotoDopamineAction();
+  }
+
+  if (selectedCategory === 'Reward') {
+    return saveReward(sub);
+  }
+
+  if (selectedCategory === 'Relationship' && relationshipPersons.has(sub)) {
+    selectedRelPerson = sub;
+    showRelSecondTags(sub);
+    return;
+  }
+
+  if (selectedCategory === 'Pomodoro') {
+    if (sub === 'Reset') {
+      logPomodoroReset();
+    } else {
+      logPomodoro();
+    }
+  } else {
+    gotoInput();
+  }
+}
+
+function showRelSecondTags(person) {
+  hidePages();
+  document.getElementById('relTagTitle').textContent = `Relationship / ${person}`;
+  const wrap = document.getElementById('relTagButtons');
+  wrap.innerHTML = '';
+  relSecondTags.forEach(t => {
+    const btn = document.createElement('button');
+    btn.textContent = t;
+    btn.onclick = () => {
+      selectedRelSecondTag = t;
+      selectedSubCategory = `${person}/${t}`;
+      gotoInput(true);
     };
+    wrap.appendChild(btn);
+  });
+  document.getElementById('pageRelTags').classList.add('active');
+}
 
-    const DEFAULT_PLAN_TODOS = [
-      { text: '買雞' },
-      { text: '整雞水', tag: '1.5hr' },
-      { text: '整雞水', tag: '30mins' },
-      { text: '運動' },
-      { text: '游水' }
-    ];
+function gotoInput(showAutoHint=false) {
+  hidePages();
+  const label = selectedSubCategory ? `${selectedCategory}/${selectedSubCategory}` : selectedCategory;
+  document.getElementById('selectedCategoryLabel').textContent = label;
+  document.getElementById('currentTime').textContent = fmtTime();
+  document.getElementById('content').value = '';
+  document.getElementById('autoTagsHint').textContent = showAutoHint ? '已選：' + selectedSubCategory : '';
+  document.getElementById('pageInput').classList.add('active');
+}
 
-    const DUR_PRESETS = [5,15,30,60,90,120];
-    let arrangementTasks = [];
+function gotoHealth() {
+  hidePages();
+  document.getElementById('sleepHours').value = '7';
+  document.getElementById('onBedTime').value = '21:30';
+  document.getElementById('energy').value = '7';
+  document.getElementById('healthNotes').value = '';
+  document.getElementById('healthTime').textContent = `${fmtDate()} ${fmtTime()}`;
+  document.getElementById('pageHealth').classList.add('active');
+}
 
-    function pad2(n){ return String(n).padStart(2,'0'); }
-    function now(){ return Date.now(); }
-    function getTodayStrLocal(){
-      const d = new Date();
-      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const DEFAULT_TODOS = [
+  { text: "買雞" },
+  { text: "整雞水", tag:"1.5hr" },
+  { text: "整雞水", tag:"30mins" },
+  { text: "運動" },
+  { text: "游水" }
+];
+
+function gotoTodo() {
+  hidePages();
+  document.getElementById('todoDateTime').textContent = `${fmtDate()} ${fmtTime()}`;
+  const box = document.getElementById('todoCards');
+  box.innerHTML = '';
+  DEFAULT_TODOS.forEach(addTodoCard);
+  document.getElementById('todoNew').value = '';
+  document.getElementById('pageTodo').classList.add('active');
+}
+
+function addTodoCard(item) {
+  const box = document.getElementById('todoCards');
+  const id = 't_' + Math.random().toString(36).slice(2,8);
+  const label = document.createElement('label');
+  label.className = 'card';
+  label.innerHTML = `
+    <input type="checkbox" id="${id}">
+    <div class="text">${escapeHTML(item.text)}${item.tag ? ` <span class="chip">${escapeHTML(item.tag)}</span>` : ''}</div>
+  `;
+  label.addEventListener('click', (e) => {
+    if (e.target.tagName.toLowerCase() !== 'input') {
+      const cb = label.querySelector('input');
+      cb.checked = !cb.checked;
+      label.classList.toggle('selected', cb.checked);
+      e.preventDefault();
+    } else {
+      label.classList.toggle('selected', e.target.checked);
     }
-    function escapeHtml(s){ return (s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-    function escapeAttr(s){ return escapeHtml(s).replace(/"/g,'&quot;'); }
-    function fmtTime(ts){
-      const d = new Date(ts || Date.now());
-      let h = d.getHours();
-      const m = pad2(d.getMinutes());
-      const ampm = h >= 12 ? 'pm' : 'am';
-      h = h % 12 || 12;
-      return `${h}:${m}${ampm}`;
+  });
+  box.appendChild(label);
+}
+
+function addTodoFromInput() {
+  const v = (document.getElementById('todoNew').value || '').trim();
+  if (!v) return;
+  addTodoCard({text: v});
+  document.getElementById('todoNew').value = '';
+}
+
+function selectAllTodos() {
+  document.querySelectorAll('#todoCards .card input[type="checkbox"]').forEach(cb => {
+    cb.checked = true;
+    cb.closest('.card').classList.add('selected');
+  });
+}
+
+function clearAllTodos() {
+  document.querySelectorAll('#todoCards .card input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+    cb.closest('.card').classList.remove('selected');
+  });
+}
+
+function buildEntry(text, forceTags=null) {
+  const date = fmtDate(), time = fmtTime();
+  let tags;
+  if (forceTags !== null) {
+    tags = forceTags;
+  } else {
+    const auto = [
+      `#${(selectedCategory || '').toLowerCase()}`,
+      selectedSubCategory ? `#${selectedSubCategory.toLowerCase()}` : ''
+    ].filter(Boolean).join(' ');
+    tags = auto;
+  }
+  const tagPart = tags ? ` ${tags}` : '';
+  return `[${date}\n${time} ｜ ${text}${tagPart}]`;
+}
+
+function sendToShortcuts(encodedText, opts) {
+  const names = (opts && Array.isArray(opts.shortcuts) && opts.shortcuts.length)
+    ? opts.shortcuts
+    : ["SaveToSuccessDaily"];
+
+  names.forEach((name, idx) => {
+    const url = `shortcuts://run-shortcut?name=${encodeURIComponent(name)}&input=text&text=${encodedText}`;
+    if (idx === 0) {
+      window.open(url);
+    } else {
+      setTimeout(() => { window.location.href = url; }, 600 * idx);
     }
-    function fmtDate(ts){
-      const d = new Date(ts || Date.now());
-      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
-    }
-    function fmtDateTime(ts){ return `${fmtDate(ts)} ${fmtTime(ts)}`; }
-    function timeStrToMinutesToday(tStr){
-      if(!tStr || !/^\d{2}:\d{2}$/.test(tStr)) return null;
-      const [h,m] = tStr.split(':').map(Number);
-      return h*60 + m;
-    }
-    function minutesToTimeStr(m){
-      const hh = Math.floor(m/60)%24;
-      const mm = m%60;
-      return `${pad2(hh)}:${pad2(mm)}`;
-    }
-    function uid(){ return 'id_' + Math.random().toString(36).slice(2,10); }
+  });
+}
 
-    function saveLS(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
-    function loadLS(key, fallback){
-      try {
-        const v = JSON.parse(localStorage.getItem(key));
-        return Array.isArray(fallback) ? (Array.isArray(v) ? v : fallback) : (v ?? fallback);
-      } catch { return fallback; }
-    }
+function saveToNotes() {
+  let txt = document.getElementById('content').value.trim();
+  if (!txt) { alert("Please enter something!"); return; }
+  txt = txt.replace(/#review\]/gi, '#review');
 
-    function todayStr(){ return getTodayStrLocal(); }
-    function getTodayTodos(){ return loadLS(STORAGE_KEYS.todayTodos, []); }
-    function setTodayTodos(arr){ saveLS(STORAGE_KEYS.todayTodos, arr); }
-    function getHistory24(){ return loadLS(STORAGE_KEYS.history24, []); }
-    function setHistory24(arr){ saveLS(STORAGE_KEYS.history24, arr); }
+  const encoded = encodeURIComponent(buildEntry(txt));
 
-    function pruneHistory24(){
-      const cutoff = now() - 24*60*60*1000;
-      const pruned = getHistory24().filter(x => (x.createdAt || 0) >= cutoff);
-      setHistory24(pruned);
-      return pruned;
-    }
+  if (selectedCategory === 'Finance') {
+    sendToShortcuts(encoded, { shortcuts: ["SaveToSuccessDaily","SaveToInvestment"] });
+  } else {
+    sendToShortcuts(encoded);
+  }
+}
 
-    function moveOldTodayTodosToHistory(){
-      const all = getTodayTodos();
-      const today = todayStr();
-      const todayItems = [];
-      const oldItems = [];
-      all.forEach(item => {
-        if(item.date === today) todayItems.push(item); else oldItems.push(item);
-      });
-      if(oldItems.length){
-        const merged = pruneHistory24().concat(oldItems);
-        setHistory24(merged);
-      }
-      setTodayTodos(todayItems);
-    }
+function logPomodoro() {
+  const note = buildEntry('25mins');
+  sendToShortcuts(encodeURIComponent(note));
+  goHome();
+}
 
-    function updateHomeStats(){
-      moveOldTodayTodosToHistory();
-      const todos = getTodayTodos();
-      const hist = pruneHistory24();
-      document.getElementById('homeTodayCount').textContent = todos.length;
-      document.getElementById('homeDoneCount').textContent = todos.filter(x => x.status === 'done').length;
-      document.getElementById('home24Count').textContent = hist.length;
-    }
+function logPomodoroReset() {
+  const note = buildEntry('Pomodoro reset');
+  sendToShortcuts(encodeURIComponent(note));
+  goHome();
+}
 
-    function showPage(id){
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-      if(id === 'pageToday') refreshTodayPage();
-      if(id === 'pagePlan') gotoPlanBuilder();
-      if(id === 'pageHome') updateHomeStats();
-    }
-    function goHome(){ showPage('pageHome'); }
+function saveHealth() {
+  const hours = parseInt((document.getElementById('sleepHours').value || '').trim(), 10);
+  const onBed = (document.getElementById('onBedTime').value || '').trim();
+  const energy = parseInt(document.getElementById('energy').value, 10);
+  const notes = (document.getElementById('healthNotes').value || '').trim();
 
-    document.getElementById('todayStr').textContent = todayStr();
+  if (isNaN(hours) || hours < 4 || hours > 12) { alert('Please select sleeping hours between 4 and 12.'); return; }
+  if (!onBed) { alert('Please enter on-bed time.'); return; }
+  if (isNaN(energy) || energy < 1 || energy > 10) { alert('Energy must be 1–10.'); return; }
 
-    // =========================
-    // Plan page
-    // =========================
-    function gotoPlanBuilder(){
-      document.getElementById('planDateTime').textContent = fmtDateTime();
-      const box = document.getElementById('planTodoCards');
-      box.innerHTML = '';
-      DEFAULT_PLAN_TODOS.forEach(addPlanTodoCard);
-      document.getElementById('planNewTodo').value = '';
-    }
+  const onBedHuman = toHumanTime(onBed);
+  const pieces = [`sleep=${hours}h`,`onBed=${onBedHuman}`,`energy=${energy}/10`];
+  if (notes) pieces.push(`notes=${sanitizeInline(notes)}`);
 
-    function addPlanTodoCard(item){
-      const box = document.getElementById('planTodoCards');
-      const id = uid();
-      const label = document.createElement('label');
-      label.className = 'todo-card';
-      label.innerHTML = `
-        <input type="checkbox" id="${id}" />
-        <div>
-          <div class="todo-title">${escapeHtml(item.text)}${item.tag ? ` <span class="pill">${escapeHtml(item.tag)}</span>` : ''}</div>
-          <div class="todo-meta">點選後會加入本日任務池</div>
-        </div>
-        <div class="small">${item.tag ? '預設時長' : '自訂'}</div>
-      `;
-      label.addEventListener('click', (e) => {
-        const cb = label.querySelector('input');
-        if(e.target.tagName.toLowerCase() !== 'input'){
-          cb.checked = !cb.checked;
-          e.preventDefault();
-        }
-        label.classList.toggle('selected', cb.checked);
-      });
-      box.appendChild(label);
-    }
+  const text = pieces.join(' | ');
+  selectedCategory = 'Health';
+  selectedSubCategory = '';
+  const note = buildEntry(text);
 
-    function addPlanTodoFromInput(){
-      const v = (document.getElementById('planNewTodo').value || '').trim();
-      if(!v) return;
-      addPlanTodoCard({ text: v });
-      document.getElementById('planNewTodo').value = '';
-    }
-    function selectAllPlanTodos(){
-      document.querySelectorAll('#planTodoCards .todo-card input[type="checkbox"]').forEach(cb => {
-        cb.checked = true;
-        cb.closest('.todo-card').classList.add('selected');
-      });
-    }
-    function clearAllPlanTodos(){
-      document.querySelectorAll('#planTodoCards .todo-card input[type="checkbox"]').forEach(cb => {
-        cb.checked = false;
-        cb.closest('.todo-card').classList.remove('selected');
-      });
-    }
+  sendToShortcuts(encodeURIComponent(note), {
+    shortcuts: ["SaveToSuccessDaily"]
+  });
+}
 
-    function parseDurationMinutes(text){
-      if(!text) return null;
-      if(/半\s*小?時/.test(text)) return 30;
-      const patterns = [
-        /dur\s*=\s*(\d+)\s*m\b/i,
-        /dur\s*=\s*(\d+)\s*min\b/i,
-        /dur\s*=\s*(\d+(?:\.\d+)?)\s*h(?:ours?)?\b/i,
-        /dur\s*=\s*(\d+(?:\.\d+)?)\s*hr\b/i,
-        /est\s*=\s*(\d+)\s*m\b/i,
-        /est\s*=\s*(\d+)\s*min\b/i,
-        /est\s*=\s*(\d+(?:\.\d+)?)\s*h(?:ours?)?\b/i,
-        /est\s*=\s*(\d+(?:\.\d+)?)\s*hr\b/i,
-        /\b(\d+)\s*mins?\b/i,
-        /\b(\d+)\s*min\b/i,
-        /\b(\d+)\s*m\b/i,
-        /\b(\d+(?:\.\d+)?)\s*h(?:ours?)?\b/i,
-        /\b(\d+(?:\.\d+)?)\s*hr\b/i,
-        /(\d+(?:\.\d+)?)\s*小?時/i,
-        /(\d+)\s*分(?:鐘)?/i
-      ];
-      for(const re of patterns){
-        const m = text.match(re);
-        if(m){
-          const val = parseFloat(m[1]);
-          if(/h(?:ours?)?|hr|小?時/i.test(re.source)) return Math.round(val*60);
-          return Math.round(val);
-        }
-      }
-      return null;
-    }
+function logIceWater() {
+  selectedCategory = 'Health';
+  selectedSubCategory = '';
+  const text = 'Ice water wash face';
+  const note = buildEntry(text);
+  sendToShortcuts(encodeURIComponent(note), {
+    shortcuts: ["SaveToSuccessDaily","SaveToFacial photo record"]
+  });
+  goHome();
+}
 
-    function normalizeTaskName(text){
-      return (text || '')
-        .replace(/\b\d+(?:\.\d+)?\s*(?:mins?|min|m|h|hr|hours?)\b/ig,'')
-        .replace(/(\d+(?:\.\d+)?)\s*小?時/ig,'')
-        .replace(/(\d+)\s*分(?:鐘)?/ig,'')
-        .replace(/半\s*小?時/ig,'')
-        .trim();
-    }
+function logColdShower() {
+  selectedCategory = 'Health';
+  selectedSubCategory = '';
+  const text = 'Cold shower';
+  const note = buildEntry(text);
+  sendToShortcuts(encodeURIComponent(note), {
+    shortcuts: ["SaveToSuccessDaily"]
+  });
+  goHome();
+}
 
-    function savePlanToToday(state){
-      const picked = Array.from(document.querySelectorAll('#planTodoCards .todo-card'))
-        .filter(card => card.querySelector('input').checked)
-        .map(card => card.querySelector('.todo-title').innerText.trim());
-      if(!picked.length){ alert('請至少選擇一項'); return; }
+function saveTonight(state) {
+  const picked = Array.from(document.querySelectorAll('#todoCards .card'))
+    .filter(card => card.querySelector('input').checked)
+    .map(card => card.querySelector('.text').innerText.trim());
 
-      moveOldTodayTodosToHistory();
-      const todos = getTodayTodos();
-      const createdAt = now();
-      picked.forEach(text => {
-        todos.push({
-          id: uid(),
-          text: normalizeTaskName(text),
-          displayText: text,
-          minutes: parseDurationMinutes(text),
-          date: todayStr(),
-          status: state,
-          createdAt,
-          updatedAt: createdAt,
-          source: 'plan'
-        });
-      });
-      setTodayTodos(todos);
-      updateHomeStats();
-      alert(`已加入 Today ToDoList：${picked.length} 項`);
-      showPage('pageToday');
-    }
+  if (picked.length === 0) { alert('請至少選擇一項或新增項目'); return; }
 
-    // =========================
-    // Today page
-    // =========================
-    function markTodoStatus(id, status){
-      const todos = getTodayTodos().map(item => item.id === id ? {...item, status, updatedAt: now()} : item);
-      setTodayTodos(todos);
-      refreshTodayPage();
-      updateHomeStats();
-    }
+  selectedCategory = 'TonightToDoList';
+  selectedSubCategory = '';
+  const text = `Tonight: ${picked.join(', ')} | status=${state}`;
+  const note = buildEntry(text);
+  sendToShortcuts(encodeURIComponent(note));
+}
 
-    function deleteTodayTodo(id){
-      const todos = getTodayTodos();
-      const found = todos.find(x => x.id === id);
-      const remain = todos.filter(x => x.id !== id);
-      setTodayTodos(remain);
-      if(found){
-        const hist = pruneHistory24();
-        hist.unshift({...found, archivedAt: now(), archivedReason: 'manual-delete'});
-        setHistory24(hist);
-      }
-      refreshTodayPage();
-      updateHomeStats();
-    }
+function toHumanTime(hhmm) {
+  const [hStr, mStr] = hhmm.split(':');
+  let h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? 'pm' : 'am';
+  h = h % 12 || 12;
+  return `${h}:${mStr}${ampm}`;
+}
 
-    function renderTodayCards(list, elId, allowActions){
-      const host = document.getElementById(elId);
-      host.innerHTML = '';
-      if(!list.length){ host.innerHTML = '<div class="empty">沒有資料</div>'; return; }
-      list
-        .slice()
-        .sort((a,b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0))
-        .forEach(item => {
-          const div = document.createElement('div');
-          div.className = `todo-card ${item.status==='done'?'done':''}`;
-          div.innerHTML = `
-            <input type="checkbox" ${item.status==='done' ? 'checked' : ''} ${allowActions ? '' : 'disabled'} />
-            <div>
-              <div class="todo-title">${escapeHtml(item.displayText || item.text)}</div>
-              <div class="todo-meta">
-                ${item.status==='done' ? '<span class="tag-ok">Done</span>' : '<span class="tag-warn">Planned</span>'}
-                ${item.minutes != null ? `<span class="pill">${item.minutes}m</span>` : ''}
-                <span class="pill">${escapeHtml(item.source || 'manual')}</span>
-                <span class="pill">${escapeHtml(fmtDateTime(item.updatedAt || item.createdAt))}</span>
-              </div>
-            </div>
-            <div class="toolbar">
-              ${allowActions ? `
-                <button onclick="markTodoStatus('${item.id}','planned')">Planned</button>
-                <button class="btn-ok" onclick="markTodoStatus('${item.id}','done')">Done</button>
-                <button class="btn-danger" onclick="deleteTodayTodo('${item.id}')">Delete</button>
-              ` : ''}
-            </div>
-          `;
-          const cb = div.querySelector('input[type="checkbox"]');
-          if(allowActions){
-            cb.addEventListener('change', () => markTodoStatus(item.id, cb.checked ? 'done' : 'planned'));
-          }
-          host.appendChild(div);
-        });
-    }
+function sanitizeInline(s) {
+  return s.replace(/\n+/g, ' ').replace(/\]/g, ')');
+}
 
-    function refreshTodayPage(){
-      moveOldTodayTodosToHistory();
-      const todos = getTodayTodos();
-      const hist = pruneHistory24();
-      const planned = todos.filter(x => x.status === 'planned').length;
-      const done = todos.filter(x => x.status === 'done').length;
-      document.getElementById('todayStats1').textContent = `${planned} / ${done}`;
-      document.getElementById('todayStats2').textContent = todos.length;
-      document.getElementById('todayStats3').textContent = hist.length;
-      renderTodayCards(todos, 'todayList', true);
-      renderTodayCards(hist, 'history24List', false);
-    }
+function escapeHTML(s){
+  return s.replace(/[&<>"']/g, c => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[c]));
+}
 
-    function clear24hHistory(){
-      if(!confirm('清除最近 24 小時紀錄？')) return;
-      setHistory24([]);
-      refreshTodayPage();
-      updateHomeStats();
-    }
+function gotoDopamineAction() {
+  hidePages();
+  document.getElementById('pageDopa').classList.add('active');
+}
 
-    // =========================
-    // Arrangement page
-    // =========================
-    function presetTimes(){
-      const n = new Date();
-      n.setMinutes(n.getMinutes()+30);
-      document.getElementById('homeTime').value = `${pad2(n.getHours())}:${pad2(n.getMinutes())}`;
-      document.getElementById('bedTime').value = '23:30';
-    }
+function chooseDopa(token, label){
+  selectedDopaToken = token;
+  selectedDopaLabel = label;
+  hidePages();
+  document.getElementById('dopaFormTitle').textContent = `Dopamine Action — ${selectedDopaLabel}`;
+  document.getElementById('dopaFormTime').textContent = `${fmtDate()} ${fmtTime()}`;
+  document.getElementById('dopaEvent').value = '';
+  document.getElementById('pageDopaForm').classList.add('active');
+}
 
-    function showArrangementStep(id){
-      document.querySelectorAll('.arr-step').forEach(s => s.style.display = 'none');
-      document.getElementById(id).style.display = '';
-    }
+function saveDopaEvent(){
+  const eventText = (document.getElementById('dopaEvent').value || '').trim();
+  if(!eventText){ alert('請輸入事件內容'); return; }
+  selectedCategory = 'MentalHealth';
+  selectedSubCategory = 'DopamineAction';
+  const text = `${sanitizeInline(eventText)} ${selectedDopaToken}`;
+  const note = buildEntry(text);
+  sendToShortcuts(encodeURIComponent(note));
+  selectedDopaToken = '';
+  selectedDopaLabel = '';
+  goHome();
+}
 
-    function openArrangementFromStoredData(){
-      moveOldTodayTodosToHistory();
-      showPage('pageArrangement');
-      showArrangementStep('arrStep1');
-      loadArrangementTasksFromToday();
-    }
-
-    function loadArrangementTasksFromToday(){
-      const todos = getTodayTodos().filter(x => x.date === todayStr());
-      arrangementTasks = todos.map(item => ({
-        id: item.id,
-        raw: `[${item.date}\n${fmtTime(item.createdAt)} ｜ Tonight: ${item.displayText || item.text} | status=${item.status} #tonighttodolist]`,
-        name: normalizeTaskName(item.displayText || item.text),
-        minutes: item.minutes ?? parseDurationMinutes(item.displayText || item.text),
-        rank: '',
-        startOverride: null,
-        status: item.status
-      }));
-      renderDetected(arrangementTasks);
-      renderTaskCards();
-      resetArrangementStats();
-    }
-
-    function prepareArrangementAndGoStep2(){
-      loadArrangementTasksFromToday();
-      if(!arrangementTasks.length){ alert('Today ToDoList 沒有任務，請先到 Plan 或 Today ToDoList 新增。'); return; }
-      showArrangementStep('arrStep2');
-    }
-
-    function renderDetected(items){
-      const wrap = document.getElementById('detectedWrap');
-      const el = document.getElementById('detected');
-      if(!items.length){ wrap.style.display = 'none'; el.innerHTML = ''; return; }
-      wrap.style.display = '';
-      el.innerHTML = items.map((it,i)=>`<div class="pill">${i+1}</div><span class="mono">${escapeHtml(it.name)}</span> ${it.minutes!=null ? `<span class="tag-ok">${it.minutes}m</span>` : `<span class="tag-warn">未填時長</span>`} ${it.status==='done' ? `<span class="tag-ok">done</span>` : `<span class="tag-warn">planned</span>`}`).join('<br/>');
-    }
-
-    function renderTaskCards(){
-      const host = document.getElementById('taskList');
-      host.innerHTML = '';
-      if(!arrangementTasks.length){ host.innerHTML = '<div class="empty">（尚無任務，請先在 Step 1 載入 Today ToDoList）</div>'; return; }
-      arrangementTasks.forEach((t, idx) => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        const dur = (t.minutes==null || t.minutes==='') ? '' : Number(t.minutes);
-        const rank = (t.rank==null || t.rank==='') ? null : Number(t.rank);
-        card.innerHTML = `
-          <div class="row">
-            <div>
-              <label>任務名稱</label>
-              <input data-k="name" data-i="${idx}" value="${escapeAttr(t.name || '')}" />
-            </div>
-            <div>
-              <label>自訂時長（分鐘）</label>
-              <input type="number" min="0" step="1" placeholder="分鐘" data-k="minutes" data-i="${idx}" value="${dur}" />
-              <div class="small">快速按鈕：</div>
-              <div class="chips" data-kind="dur" data-i="${idx}">
-                ${DUR_PRESETS.map(m => `<div class="chip ${Number(dur)===m?'selected':''}" data-v="${m}">${m===60?'1hr':m===90?'1.5hr':m===120?'2hr':m+'mins'}</div>`).join('')}
-              </div>
-            </div>
-            <div>
-              <label>Rank（1=最高，5=最低）</label>
-              <div class="rank-group" data-kind="rank" data-i="${idx}">
-                ${[1,2,3,4,5].map(r => `<button type="button" class="rank ${rank===r?'selected':''}" data-v="${r}">${r}</button>`).join('')}
-              </div>
-            </div>
-          </div>
-          <div class="small mono" style="margin-top:8px">原始標記：${escapeHtml((t.raw || '').slice(0,160))}${(t.raw || '').length > 160 ? '…' : ''}</div>
-        `;
-        host.appendChild(card);
-      });
-
-      host.querySelectorAll('.chips .chip').forEach(el => {
-        el.addEventListener('click', () => {
-          const i = Number(el.parentElement.dataset.i);
-          const v = Number(el.dataset.v);
-          arrangementTasks[i].minutes = v;
-          if(arrangementTasks[i].startOverride != null) clearOverridesFrom(i+1);
-          renderTaskCards();
-        });
-      });
-      host.querySelectorAll('.rank-group .rank').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const i = Number(btn.parentElement.dataset.i);
-          const v = Number(btn.dataset.v);
-          arrangementTasks[i].rank = v;
-          renderTaskCards();
-        });
-      });
-      host.querySelectorAll('input').forEach(inp => {
-        inp.addEventListener('change', () => {
-          const i = Number(inp.dataset.i);
-          const k = inp.dataset.k;
-          let v = inp.value;
-          if(k === 'minutes' || k === 'rank') v = v === '' ? '' : Number(v);
-          arrangementTasks[i][k] = v;
-        });
-      });
-    }
-
-    function saveArrangementStep2(){
-      renderArrangementStats();
-      renderArrangementTimetable();
-      showArrangementStep('arrStep3');
-    }
-
-    function resetArrangementStats(){
-      document.getElementById('availMins').textContent = '—';
-      document.getElementById('totalMins').textContent = '—';
-      document.getElementById('deltaMins').textContent = '—';
-      document.getElementById('fitMsg').textContent = '—';
-      document.getElementById('fitMsg').className = 'hint';
-      document.getElementById('timetable').textContent = '—';
-    }
-
-    function renderArrangementStats(){
-      const home = timeStrToMinutesToday(document.getElementById('homeTime').value);
-      const bed = timeStrToMinutesToday(document.getElementById('bedTime').value);
-      let avail = null;
-      let msg = '';
-      if(home == null || bed == null) msg = '請先輸入回家時間與上床時間。';
-      else if(bed <= home) msg = '上床時間需晚於回家時間。';
-      else avail = bed - home;
-      document.getElementById('availMins').textContent = avail == null ? '—' : avail;
-
-      const mins = arrangementTasks.reduce((sum,t) => sum + (Number(t.minutes) || 0), 0);
-      document.getElementById('totalMins').textContent = arrangementTasks.length ? mins : '—';
-
-      if(avail == null || !arrangementTasks.length){
-        document.getElementById('deltaMins').textContent = '—';
-        document.getElementById('fitMsg').textContent = msg || '—';
-        document.getElementById('fitMsg').className = 'hint';
-        return;
-      }
-      const delta = avail - mins;
-      document.getElementById('deltaMins').textContent = delta;
-      const fitMsg = document.getElementById('fitMsg');
-      if(delta >= 0){
-        fitMsg.innerHTML = `<span class="tag-ok">✅ 可完成</span> 還剩 ${delta} 分鐘`;
-        fitMsg.className = 'small';
-      } else {
-        fitMsg.innerHTML = `<span class="tag-danger">⛔ 超時 ${Math.abs(delta)} 分鐘</span> 請調整順序或縮短時長`;
-        fitMsg.className = 'small';
-      }
-    }
-
-    function buildSchedule(){
-      const home = timeStrToMinutesToday(document.getElementById('homeTime').value) ?? 0;
-      let cur = null;
-      const rows = [];
-      arrangementTasks.forEach((t, idx) => {
-        const m = Math.max(0, Number(t.minutes) || 0);
-        let start;
-        if(idx === 0){
-          start = (t.startOverride != null) ? t.startOverride : home;
-          cur = start + m;
-        } else {
-          start = (t.startOverride != null) ? t.startOverride : (cur ?? home);
-          cur = start + m;
-        }
-        rows.push({ name:t.name, start, end:start+m, minutes:m, idx });
-      });
-      return rows;
-    }
-
-    function renderArrangementTimetable(){
-      const el = document.getElementById('timetable');
-      if(!arrangementTasks.length){ el.textContent = '—'; return; }
-      const bed = timeStrToMinutesToday(document.getElementById('bedTime').value);
-      const rows = buildSchedule();
-      const lines = rows.map(r => `${minutesToTimeStr(r.start)}–${minutesToTimeStr(r.end)}  ${r.name}  (${r.minutes}m)`);
-      const endAll = rows.length ? rows[rows.length-1].end : null;
-      if(endAll != null && bed != null && endAll > bed){ lines.push(`\n⚠️ 超過上床時間：${minutesToTimeStr(endAll)} > ${minutesToTimeStr(bed)}`); }
-      el.textContent = lines.join('\n');
-    }
-
-    async function copyArrangementTimetable(){
-      const header = `Tonight Timetable — ${fmtDateTime()}`;
-      const body = document.getElementById('timetable').textContent || '';
-      const text = `${header}\n\n${body}`;
-      try {
-        await navigator.clipboard.writeText(text);
-        alert('已複製 Timetable');
-      } catch {
-        alert('複製失敗，請手動複製。');
-      }
-    }
-
-    function prepareReorderStep(){
-      renderReorderList();
-      showArrangementStep('arrStep4');
-    }
-
-    function clearOverridesFrom(indexInclusive){
-      for(let j=indexInclusive; j<arrangementTasks.length; j++) arrangementTasks[j].startOverride = null;
-    }
-
-    function renderReorderList(){
-      const list = document.getElementById('reorderList');
-      list.innerHTML = '';
-      const rows = buildSchedule();
-      rows.forEach((r, visIdx) => {
-        const t = arrangementTasks[visIdx];
-        const li = document.createElement('li');
-        li.dataset.index = String(visIdx);
-        li.innerHTML = `
-          <div class="handle">☰</div>
-          <div>
-            <div class="mono">${escapeHtml(t.name)}</div>
-            <div class="small">Rank: ${t.rank === '' || t.rank == null ? '未填' : t.rank}</div>
-          </div>
-          <div>
-            <label class="small">開始時間</label>
-            <input type="time" data-k="start" data-i="${visIdx}" value="${minutesToTimeStr(r.start)}" />
-          </div>
-          <div>
-            <label class="small">時長（分）</label>
-            <input type="number" min="0" step="5" data-k="minutes" data-i="${visIdx}" value="${t.minutes || 0}" />
-            <div class="small mono">結束：<span>${minutesToTimeStr(r.end)}</span></div>
-          </div>
-        `;
-        list.appendChild(li);
-      });
-      enablePointerReorder();
-      validateOverflow();
-    }
-
-    function enablePointerReorder(){
-      const list = document.getElementById('reorderList');
-      const rows = Array.from(list.children);
-      rows.forEach(row => {
-        const handle = row.querySelector('.handle');
-        let dragging = false;
-        let startIndex = 0;
-        function onDown(e){
-          e.preventDefault();
-          dragging = true;
-          startIndex = Array.from(list.children).indexOf(row);
-          row.classList.add('ghost');
-          window.addEventListener('pointermove', onMove, {passive:false});
-          window.addEventListener('pointerup', onUp, {once:true});
-        }
-        function onMove(e){
-          if(!dragging) return;
-          e.preventDefault();
-          const elem = document.elementFromPoint(e.clientX || 1, e.clientY || 1);
-          const li = elem ? elem.closest('li') : null;
-          if(li && li.parentElement === list && li !== row){
-            const liIndex = Array.from(list.children).indexOf(li);
-            if(liIndex > startIndex) list.insertBefore(row, li.nextSibling);
-            else list.insertBefore(row, li);
-            startIndex = Array.from(list.children).indexOf(row);
-          }
-        }
-        function onUp(){
-          if(!dragging) return;
-          dragging = false;
-          row.classList.remove('ghost');
-          window.removeEventListener('pointermove', onMove, {passive:false});
-          const newOrder = Array.from(list.children).map(li => Number(li.dataset.index));
-          arrangementTasks = newOrder.map(i => arrangementTasks[i]);
-          clearOverridesFrom(0);
-          Array.from(list.children).forEach((li,i) => li.dataset.index = String(i));
-          renderReorderList();
-        }
-        handle.addEventListener('pointerdown', onDown);
-      });
-    }
-
-    document.getElementById('reorderList').addEventListener('change', (e) => {
-      const i = Number(e.target.dataset.i);
-      const k = e.target.dataset.k;
-      if(Number.isNaN(i) || !k) return;
-      if(k === 'minutes'){
-        arrangementTasks[i].minutes = Math.max(0, Math.round(Number(e.target.value) || 0));
-        clearOverridesFrom(i+1);
-      }
-      if(k === 'start'){
-        const newStart = timeStrToMinutesToday(e.target.value);
-        if(newStart == null) return;
-        arrangementTasks[i].startOverride = newStart;
-        clearOverridesFrom(i+1);
-      }
-      renderReorderList();
-    });
-
-    function validateOverflow(){
-      const bed = timeStrToMinutesToday(document.getElementById('bedTime').value);
-      const rows = buildSchedule();
-      const endAll = rows.length ? rows[rows.length-1].end : null;
-      const parent = document.getElementById('reorderList').parentElement;
-      const old = parent.querySelector('.overflow-msg');
-      if(old) old.remove();
-      if(endAll != null && bed != null && endAll > bed){
-        const warn = document.createElement('div');
-        warn.className = 'small overflow-msg';
-        warn.style.marginTop = '8px';
-        warn.innerHTML = `<span class="tag-danger">⛔ 超時 ${endAll-bed} 分鐘</span> 請調整順序或縮短時長。`;
-        parent.appendChild(warn);
-      }
-    }
-
-    function finishArrangementStep4(){
-      renderArrangementStats();
-      renderArrangementTimetable();
-      showArrangementStep('arrStep3');
-    }
-
-    // =========================
-    // Dev tests
-    // =========================
-    function runDevTests(){
-      const out = [];
-      const ok = (name, cond) => out.push(`${cond ? '✅ PASS' : '❌ FAIL'}  ${name}`);
-      ok('parseDurationMinutes("dur=30m") === 30', parseDurationMinutes('dur=30m') === 30);
-      ok('parseDurationMinutes("1.5hr") === 90', parseDurationMinutes('1.5hr') === 90);
-      ok('parseDurationMinutes("半小時") === 30', parseDurationMinutes('半小時') === 30);
-      ok('normalizeTaskName("整雞水 30mins") === 整雞水', normalizeTaskName('整雞水 30mins') === '整雞水');
-      arrangementTasks = [
-        {name:'T1', minutes:30, rank:1, raw:'', startOverride:null},
-        {name:'T2', minutes:20, rank:2, raw:'', startOverride:null},
-        {name:'T3', minutes:10, rank:3, raw:'', startOverride:null}
-      ];
-      document.getElementById('homeTime').value = '19:30';
-      document.getElementById('bedTime').value = '23:30';
-      let rows = buildSchedule();
-      ok('buildSchedule T1 start 19:30', minutesToTimeStr(rows[0].start) === '19:30');
-      arrangementTasks[1].startOverride = 20*60;
-      clearOverridesFrom(2);
-      rows = buildSchedule();
-      ok('T2 start 20:00', minutesToTimeStr(rows[1].start) === '20:00');
-      ok('T3 start 20:20', minutesToTimeStr(rows[2].start) === '20:20');
-      document.getElementById('tests').textContent = out.join('\n');
-      loadArrangementTasksFromToday();
-    }
-
-    // =========================
-    // Init
-    // =========================
-    (function init(){
-      moveOldTodayTodosToHistory();
-      presetTimes();
-      updateHomeStats();
-      gotoPlanBuilder();
-      runDevTests();
-    })();
-  </script>
+function saveReward(choice){
+  let text = '';
+  if (choice === '抱石美女') {
+    text = '享受 #抱石美女 60**';
+  } else if (choice === '打機老婆（30mins)') {
+    text = '打機 #wife 5**';
+  } else if (choice === 'Beer') {
+    text = '飲啤酒 10**';
+  } else {
+    alert('Unknown reward option');
+    return;
+  }
+  selectedCategory = 'Reward';
+  selectedSubCategory = '';
+  const note = buildEntry(text, '');
+  sendToShortcuts(encodeURIComponent(note));
+  goHome();
+}
+</script>
 </body>
 </html>
