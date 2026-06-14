@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,210 +5,468 @@
 <title>Success Diary</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-body{font-family:Arial,sans-serif;padding:1em;background:#f9f9f9;font-size:240%;text-align:center;}
+body{font-family:Arial,sans-serif;padding:1em;background:#f9f9f9;font-size:240%;text-align:center}
 .page{display:none}.active{display:block}
 button{margin:.4em;padding:.3em 1em;font-size:90%;cursor:pointer}
 input,textarea,select{width:90%;padding:.5em;font-size:90%;margin:.6em 0}
-.small{font-size:70%}.hint{font-size:60%;color:#666}
 .row{display:flex;gap:.6em;justify-content:center;align-items:center;flex-wrap:wrap}
-.reward-card{
-  background:#fff;border:1px solid #ddd;border-radius:14px;
-  padding:14px;margin:10px auto;max-width:680px;
-  box-shadow:0 1px 2px rgba(0,0,0,.06);
-}
-.reward-actions button{font-size:70%;padding:.3em .7em}
-.primary{background:#7aa2ff;color:#fff;border:none;border-radius:10px}
-.danger{background:#ff7777;color:#fff;border:none;border-radius:10px}
+.row>*{flex:1 1 240px;max-width:480px}
+.hint{font-size:60%;color:#666;margin-top:-.4em}.small{font-size:70%}
+.todo-wrap{text-align:left;max-width:640px;margin:0 auto}.toolbar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:.2em 0 .6em}
+.toolbar button{padding:.4em .8em;font-size:80%}
+.todo-input{display:flex;gap:8px;align-items:center;justify-content:center}
+.todo-input input{flex:1 1 auto;max-width:none}.todo-input button{padding:.4em .8em;font-size:90%}
+.cards{display:grid;grid-template-columns:1fr;gap:12px}@media(min-width:420px){.cards{grid-template-columns:1fr 1fr}}
+.card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;border:1px solid #ddd;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.06);min-height:56px}
+.card input[type=checkbox]{width:26px;height:26px}.card .text{font-size:80%;line-height:1.2}
+.chip{display:inline-block;border:1px solid #ccc;border-radius:999px;padding:.05em .5em;font-size:65%;margin-left:6px;color:#666}
+.card.selected{border-color:#7aa2ff;box-shadow:0 0 0 3px rgba(122,162,255,.2)}
+.sticky-bar{position:sticky;bottom:0;left:0;right:0;background:#f9f9f9;padding:8px 6px 2px;margin-top:8px}
+.sticky-actions{display:flex;gap:10px;justify-content:center}
+.primary{background:#7aa2ff;color:#fff;border:none;border-radius:10px;padding:.5em .9em}
+.success{background:#25d0a6;color:#fff;border:none;border-radius:10px;padding:.5em .9em}
+.pill{display:inline-block;border:1px solid #ccc;border-radius:999px;padding:.2em .6em;margin:.2em;font-size:80%}
+.reward-card{background:#fff;border:1px solid #ddd;border-radius:14px;padding:14px;margin:10px auto;max-width:680px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.reward-actions button{font-size:65%;padding:.25em .7em}
 </style>
 </head>
-
 <body>
 
 <div class="page active" id="page1">
-  <h2>Select Main Category</h2>
+<h2>Select Main Category</h2>
   <button onclick="selectCategory('Pomodoro')">Pomodoro</button>
-  <button onclick="selectCategory('Reward')">Reward</button>
-  <button onclick="selectCategory('Other')">Other</button>
+<button onclick="selectCategory('TonightToDoList')">Tonight ToDoList</button>
+<button onclick="selectCategory('Reward')">Reward</button>
+<button onclick="selectCategory('Other')">Other</button>
+<button onclick="selectCategory('Health')">Health</button>
+<button onclick="selectCategory('MentalHealth')">Mental&nbsp;Health</button>
+<button onclick="selectCategory('Relationship')">Relationship</button>
+<button onclick="selectCategory('Finance')">Finance</button>
+<button onclick="selectCategory('Work')">Work</button>
+
+</div>
+
+<div class="page" id="pageSub">
+<h2 id="subCategoryTitle"></h2>
+<div id="subButtons"></div>
 </div>
 
 <div class="page" id="pageReward">
-  <h2>Reward</h2>
+<h2>Reward</h2>
+<div class="small">新增 reward 會永久儲存在此手機 browser localStorage</div>
+<div class="row">
+<input id="rewardName" type="text" placeholder="Reward item，例如：按摩 / 打機 / 美女短片" />
+<input id="rewardStars" type="number" placeholder="Stars，例如：10" />
+</div>
+<button onclick="addOrUpdateReward()" class="success" id="rewardSaveBtn">Add Reward</button>
+<button onclick="cancelRewardEdit()">Cancel Edit</button>
+<div id="rewardList"></div>
+<button onclick="goHome()">Back</button>
+</div>
 
-  <div class="reward-card">
-    <div class="small">Add / Edit Reward</div>
-    <input id="rewardName" type="text" placeholder="Reward item，例如：美女 video / coffee / game" />
-    <input id="rewardStars" type="number" placeholder="Star number，例如：5 / 10 / 60" />
-    <button class="primary" onclick="saveCustomReward()">Save Reward</button>
-    <button onclick="clearRewardForm()">Clear</button>
-  </div>
+<div class="page" id="pageRelTags">
+<h2 id="relTagTitle"></h2>
+<div id="relTagButtons"></div>
+</div>
 
-  <div id="rewardList"></div>
+<div class="page" id="pageDopa">
+<h2>MentalHealth — Dopamine Action</h2>
+<div class="row">
+<button class="pill" onclick="chooseDopa('[[Low Dopamine]]','Low Dopamine')">Low Dopamine</button>
+<button class="pill" onclick="chooseDopa('[[Middle Dopamine]]','Middle Dopamine')">Middle Dopamine</button>
+<button class="pill" onclick="chooseDopa('[[High Dopamine]]','High Dopamine')">High Dopamine</button>
+<button class="pill" onclick="chooseDopa('[[Chaos]]','Chaos')">Chaos</button>
+</div>
+<button onclick="goHome()">Cancel</button>
+</div>
 
-  <button onclick="goHome()">Cancel</button>
+<div class="page" id="pageDopaForm">
+<h2 id="dopaFormTitle">Dopamine Action</h2>
+<p class="small" id="dopaFormTime"></p>
+<input type="text" id="dopaEvent" placeholder="剛剛發生了什麼？" />
+<div class="small">不顯示內部代碼；背景會附上等級標籤</div>
+<button onclick="saveDopaEvent()">Save</button>
+<button onclick="gotoDopamineAction()">Back</button>
+</div>
+
+<div class="page" id="pageInput">
+<h2 id="selectedCategoryLabel"></h2>
+<p id="currentTime"></p>
+<input type="text" id="content" placeholder="Describe here…" />
+<div class="small" id="autoTagsHint"></div>
+<button onclick="saveToNotes()">Save</button>
+</div>
+
+<div class="page" id="pageHealth">
+<h2>Health — Daily Check-in</h2>
+<p id="healthTime" class="small"></p>
+<div class="row">
+<div><label class="small">Sleeping hours</label><select id="sleepHours"><option>4</option><option>5</option><option>6</option><option selected>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div>
+<div><label class="small">On bed time</label><input type="time" id="onBedTime" /><div class="hint">Default 9:30pm</div></div>
+<div><label class="small">Energy</label><select id="energy"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option selected>7</option><option>8</option><option>9</option><option>10</option></select></div>
+</div>
+<textarea id="healthNotes" placeholder="Optional notes"></textarea>
+<button onclick="saveHealth()">Save</button>
+<button onclick="logIceWater()">Dip face into ice water</button>
+<button onclick="logColdShower()">Cold shower</button>
+<button onclick="goHome()">Cancel</button>
+</div>
+
+<div class="page" id="pageTodo">
+<h2>Tonight ToDoList</h2>
+<div class="small" id="todoDateTime"></div>
+<div class="todo-wrap">
+<div class="toolbar"><button onclick="selectAllTodos()">全選</button><button onclick="clearAllTodos()">清空</button></div>
+<div class="todo-input"><input id="todoNew" type="text" placeholder="新增項目…" /><button onclick="addTodoFromInput()">＋</button></div>
+<div class="cards" id="todoCards"></div>
+<div class="sticky-bar">
+<div class="sticky-actions">
+<button class="primary" onclick="saveTonight('planned')">儲存為 Planned</button>
+<button class="success" onclick="saveTonight('done')">儲存為 Done</button>
+</div>
+<div class="small">可多選；儲存會寫入 #tonighttodolist 與 status</div>
+</div>
+</div>
+<button onclick="goHome()">Cancel</button>
 </div>
 
 <script>
-const STORAGE_KEY = "successDiaryRewards_v1";
+const categoryMap={
+Health:[],
+MentalHealth:["DelayGratification","SelfControl","ErrorLearning","New","Desire","Anxiety","DopamineAction","Other"],
+Relationship:["HappyWifeHappyLife","Friendship","Father","Mother","Wife","Other"],
+Finance:[],
+Work:["A12","MEWP","Communication","Other"],
+Pomodoro:["Finance","Review","Work","Layer 4 Use Unknown","Reset"],
+TonightToDoList:[],
+Reward:[],
+Other:[]
+};
 
-let editingRewardId = null;
+const relationshipPersons=new Set(["HappyWifeHappyLife","Friendship","Father","Mother","Wife","Other"]);
+const relSecondTags=["#eat","#desire"];
 
-const defaultRewards = [
-  { id:"default_1", name:"抱石美女", stars:"60", text:"享受 #抱石美女 60**", locked:true },
-  { id:"default_2", name:"打機老婆（30mins)", stars:"5", text:"打機 #wife 5**", locked:true },
-  { id:"default_3", name:"Beer", stars:"10", text:"飲啤酒 10**", locked:true }
+let selectedCategory='',selectedSubCategory='',selectedRelPerson='',selectedRelSecondTag='';
+let selectedDopaToken='',selectedDopaLabel='';
+let editingRewardId=null;
+
+const REWARD_KEY='successDiaryRewards_v1';
+
+const defaultRewards=[
+{id:'r1',name:'抱石美女',stars:'60',text:'享受 #抱石美女'},
+{id:'r2',name:'打機老婆（30mins)',stars:'5',text:'打機 #wife'},
+{id:'r3',name:'Beer',stars:'10',text:'飲啤酒'}
 ];
 
-const fmtTime = () => {
-  const d = new Date();
-  let h = d.getHours(), m = d.getMinutes().toString().padStart(2,"0");
-  const am = h >= 12 ? "pm" : "am";
-  h = h % 12 || 12;
-  return `${h}:${m}${am}`;
-};
-
-const fmtDate = () => {
-  const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset()*60000)
-    .toISOString().split("T")[0];
-};
-
-function hidePages(){
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+function getRewards(){
+const saved=localStorage.getItem(REWARD_KEY);
+if(!saved){
+localStorage.setItem(REWARD_KEY,JSON.stringify(defaultRewards));
+return defaultRewards;
+}
+try{return JSON.parse(saved)||defaultRewards}catch(e){return defaultRewards}
 }
 
-function goHome(){
-  hidePages();
-  document.getElementById("page1").classList.add("active");
+function saveRewards(arr){
+localStorage.setItem(REWARD_KEY,JSON.stringify(arr));
 }
+
+const fmtTime=()=>{
+const d=new Date();let h=d.getHours(),m=d.getMinutes().toString().padStart(2,'0');
+const am=h>=12?'pm':'am';h=h%12||12;return `${h}:${m}${am}`;
+};
+
+const fmtDate=()=>{
+const now=new Date();
+return new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().split('T')[0];
+};
+
+const hidePages=()=>document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+const goHome=()=>{hidePages();document.getElementById('page1').classList.add('active')};
 
 function selectCategory(cat){
-  if(cat === "Reward") return gotoReward();
-  alert("This demo keeps your Reward update only. Paste Reward functions into your original full HTML.");
+selectedCategory=cat;selectedSubCategory='';selectedRelPerson='';selectedRelSecondTag='';
+if(cat==='Health')return gotoHealth();
+if(cat==='TonightToDoList')return gotoTodo();
+if(cat==='Reward')return gotoReward();
+const subs=categoryMap[cat]||[];
+if(subs.length>0){buildSubButtons(subs);hidePages();document.getElementById('pageSub').classList.add('active')}
+else gotoInput();
 }
 
-function buildEntry(text, forceTags=null){
-  const date = fmtDate(), time = fmtTime();
-  const tagPart = forceTags ? ` ${forceTags}` : "";
-  return `[${date}\n${time} ｜ ${text}${tagPart}]`;
+function buildSubButtons(arr){
+const wrap=document.getElementById('subButtons');wrap.innerHTML='';
+document.getElementById('subCategoryTitle').textContent=selectedCategory;
+arr.forEach(s=>{const b=document.createElement('button');b.textContent=s;b.onclick=()=>selectSubCategory(s);wrap.appendChild(b)});
 }
 
-function sendToShortcuts(encodedText){
-  const url = `shortcuts://run-shortcut?name=${encodeURIComponent("SaveToSuccessDaily")}&input=text&text=${encodedText}`;
-  window.open(url);
-}
-
-function loadRewards(){
-  const saved = localStorage.getItem(STORAGE_KEY);
-  let custom = [];
-  try { custom = saved ? JSON.parse(saved) : []; } catch(e){ custom = []; }
-  return [...defaultRewards, ...custom];
-}
-
-function saveRewards(customRewards){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(customRewards));
-}
-
-function getCustomRewards(){
-  const saved = localStorage.getItem(STORAGE_KEY);
-  try { return saved ? JSON.parse(saved) : []; } catch(e){ return []; }
+function selectSubCategory(sub){
+selectedSubCategory=sub;
+if(selectedCategory==='MentalHealth'&&sub==='DopamineAction')return gotoDopamineAction();
+if(selectedCategory==='Relationship'&&relationshipPersons.has(sub)){selectedRelPerson=sub;showRelSecondTags(sub);return}
+if(selectedCategory==='Pomodoro'){sub==='Reset'?logPomodoroReset():logPomodoro()}
+else gotoInput();
 }
 
 function gotoReward(){
-  hidePages();
-  renderRewards();
-  document.getElementById("pageReward").classList.add("active");
+hidePages();
+document.getElementById('pageReward').classList.add('active');
+renderRewards();
 }
 
 function renderRewards(){
-  const list = document.getElementById("rewardList");
-  list.innerHTML = "";
-
-  loadRewards().forEach(r => {
-    const div = document.createElement("div");
-    div.className = "reward-card";
-
-    div.innerHTML = `
-      <div><strong>${escapeHTML(r.name)}</strong></div>
-      <div class="small">${escapeHTML(r.stars)} **</div>
-      <div class="reward-actions">
-        <button class="primary" onclick="logReward('${r.id}')">Log</button>
-        ${r.locked ? "" : `
-          <button onclick="editReward('${r.id}')">Edit</button>
-          <button class="danger" onclick="deleteReward('${r.id}')">Delete</button>
-        `}
-      </div>
-    `;
-    list.appendChild(div);
-  });
+const list=document.getElementById('rewardList');
+list.innerHTML='';
+getRewards().forEach(r=>{
+const div=document.createElement('div');
+div.className='reward-card';
+div.innerHTML=`
+<div><b>${escapeHTML(r.name)}</b> <span class="chip">${escapeHTML(r.stars)}**</span></div>
+<div class="small">${escapeHTML(r.text||r.name)} ${escapeHTML(r.stars)}**</div>
+<div class="reward-actions">
+<button onclick="saveRewardById('${r.id}')">Save</button>
+<button onclick="editReward('${r.id}')">Edit</button>
+<button onclick="deleteReward('${r.id}')">Delete</button>
+</div>`;
+list.appendChild(div);
+});
 }
 
-function saveCustomReward(){
-  const name = document.getElementById("rewardName").value.trim();
-  const stars = document.getElementById("rewardStars").value.trim();
+function addOrUpdateReward(){
+const name=document.getElementById('rewardName').value.trim();
+const stars=document.getElementById('rewardStars').value.trim();
+if(!name){alert('Please enter reward item');return}
+if(!stars||isNaN(Number(stars))){alert('Please enter star number');return}
 
-  if(!name){ alert("Please enter reward item"); return; }
-  if(!stars || isNaN(Number(stars))){ alert("Please enter star number"); return; }
+let rewards=getRewards();
 
-  let custom = getCustomRewards();
+if(editingRewardId){
+rewards=rewards.map(r=>r.id===editingRewardId?{...r,name,stars,text:name}:r);
+editingRewardId=null;
+document.getElementById('rewardSaveBtn').textContent='Add Reward';
+}else{
+rewards.push({id:'r_'+Date.now(),name,stars,text:name});
+}
 
-  if(editingRewardId){
-    custom = custom.map(r => r.id === editingRewardId
-      ? { ...r, name, stars, text:`${name} ${stars}**` }
-      : r
-    );
-  } else {
-    custom.push({
-      id:"custom_" + Date.now(),
-      name,
-      stars,
-      text:`${name} ${stars}**`,
-      locked:false
-    });
-  }
-
-  saveRewards(custom);
-  clearRewardForm();
-  renderRewards();
+saveRewards(rewards);
+document.getElementById('rewardName').value='';
+document.getElementById('rewardStars').value='';
+renderRewards();
 }
 
 function editReward(id){
-  const r = getCustomRewards().find(x => x.id === id);
-  if(!r) return;
+const r=getRewards().find(x=>x.id===id);
+if(!r)return;
+editingRewardId=id;
+document.getElementById('rewardName').value=r.name;
+document.getElementById('rewardStars').value=r.stars;
+document.getElementById('rewardSaveBtn').textContent='Update Reward';
+}
 
-  editingRewardId = id;
-  document.getElementById("rewardName").value = r.name;
-  document.getElementById("rewardStars").value = r.stars;
+function cancelRewardEdit(){
+editingRewardId=null;
+document.getElementById('rewardName').value='';
+document.getElementById('rewardStars').value='';
+document.getElementById('rewardSaveBtn').textContent='Add Reward';
 }
 
 function deleteReward(id){
-  if(!confirm("Delete this reward?")) return;
-  const custom = getCustomRewards().filter(r => r.id !== id);
-  saveRewards(custom);
-  clearRewardForm();
-  renderRewards();
+if(!confirm('Delete this reward?'))return;
+const rewards=getRewards().filter(r=>r.id!==id);
+saveRewards(rewards);
+renderRewards();
 }
 
-function clearRewardForm(){
-  editingRewardId = null;
-  document.getElementById("rewardName").value = "";
-  document.getElementById("rewardStars").value = "";
+function saveRewardById(id){
+const r=getRewards().find(x=>x.id===id);
+if(!r)return;
+selectedCategory='Reward';
+selectedSubCategory='';
+const text=`${r.text||r.name} ${r.stars}**`;
+const note=buildEntry(text,'');
+sendToShortcuts(encodeURIComponent(note));
+goHome();
 }
 
-function logReward(id){
-  const reward = loadRewards().find(r => r.id === id);
-  if(!reward) return;
-
-  const note = buildEntry(reward.text, "");
-  sendToShortcuts(encodeURIComponent(note));
-  goHome();
+function showRelSecondTags(person){
+hidePages();
+document.getElementById('relTagTitle').textContent=`Relationship / ${person}`;
+const wrap=document.getElementById('relTagButtons');wrap.innerHTML='';
+relSecondTags.forEach(t=>{
+const btn=document.createElement('button');
+btn.textContent=t;
+btn.onclick=()=>{selectedRelSecondTag=t;selectedSubCategory=`${person}/${t}`;gotoInput(true)};
+wrap.appendChild(btn);
+});
+document.getElementById('pageRelTags').classList.add('active');
 }
 
-function escapeHTML(s){
-  return String(s).replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
+function gotoInput(showAutoHint=false){
+hidePages();
+const label=selectedSubCategory?`${selectedCategory}/${selectedSubCategory}`:selectedCategory;
+document.getElementById('selectedCategoryLabel').textContent=label;
+document.getElementById('currentTime').textContent=fmtTime();
+document.getElementById('content').value='';
+document.getElementById('autoTagsHint').textContent=showAutoHint?'已選：'+selectedSubCategory:'';
+document.getElementById('pageInput').classList.add('active');
+}
+
+function gotoHealth(){
+hidePages();
+document.getElementById('sleepHours').value='7';
+document.getElementById('onBedTime').value='21:30';
+document.getElementById('energy').value='7';
+document.getElementById('healthNotes').value='';
+document.getElementById('healthTime').textContent=`${fmtDate()} ${fmtTime()}`;
+document.getElementById('pageHealth').classList.add('active');
+}
+
+const DEFAULT_TODOS=[
+{text:"買雞"},{text:"整雞水",tag:"1.5hr"},{text:"整雞水",tag:"30mins"},{text:"運動"},{text:"游水"}
+];
+
+function gotoTodo(){
+hidePages();
+document.getElementById('todoDateTime').textContent=`${fmtDate()} ${fmtTime()}`;
+const box=document.getElementById('todoCards');box.innerHTML='';
+DEFAULT_TODOS.forEach(addTodoCard);
+document.getElementById('todoNew').value='';
+document.getElementById('pageTodo').classList.add('active');
+}
+
+function addTodoCard(item){
+const box=document.getElementById('todoCards');
+const id='t_'+Math.random().toString(36).slice(2,8);
+const label=document.createElement('label');
+label.className='card';
+label.innerHTML=`<input type="checkbox" id="${id}"><div class="text">${escapeHTML(item.text)}${item.tag?` <span class="chip">${escapeHTML(item.tag)}</span>`:''}</div>`;
+label.addEventListener('click',e=>{
+if(e.target.tagName.toLowerCase()!=='input'){
+const cb=label.querySelector('input');cb.checked=!cb.checked;
+label.classList.toggle('selected',cb.checked);e.preventDefault();
+}else label.classList.toggle('selected',e.target.checked);
+});
+box.appendChild(label);
+}
+
+function addTodoFromInput(){
+const v=(document.getElementById('todoNew').value||'').trim();
+if(!v)return;
+addTodoCard({text:v});
+document.getElementById('todoNew').value='';
+}
+
+function selectAllTodos(){
+document.querySelectorAll('#todoCards .card input[type="checkbox"]').forEach(cb=>{cb.checked=true;cb.closest('.card').classList.add('selected')});
+}
+
+function clearAllTodos(){
+document.querySelectorAll('#todoCards .card input[type="checkbox"]').forEach(cb=>{cb.checked=false;cb.closest('.card').classList.remove('selected')});
+}
+
+function buildEntry(text,forceTags=null){
+const date=fmtDate(),time=fmtTime();
+let tags;
+if(forceTags!==null)tags=forceTags;
+else{
+const auto=[`#${(selectedCategory||'').toLowerCase()}`,selectedSubCategory?`#${selectedSubCategory.toLowerCase()}`:''].filter(Boolean).join(' ');
+tags=auto;
+}
+const tagPart=tags?` ${tags}`:'';
+return `[${date}\n${time} ｜ ${text}${tagPart}]`;
+}
+
+function sendToShortcuts(encodedText,opts){
+const names=(opts&&Array.isArray(opts.shortcuts)&&opts.shortcuts.length)?opts.shortcuts:["SaveToSuccessDaily"];
+names.forEach((name,idx)=>{
+const url=`shortcuts://run-shortcut?name=${encodeURIComponent(name)}&input=text&text=${encodedText}`;
+if(idx===0)window.open(url);
+else setTimeout(()=>{window.location.href=url},600*idx);
+});
+}
+
+function saveToNotes(){
+let txt=document.getElementById('content').value.trim();
+if(!txt){alert("Please enter something!");return}
+txt=txt.replace(/#review\]/gi,'#review');
+const encoded=encodeURIComponent(buildEntry(txt));
+if(selectedCategory==='Finance')sendToShortcuts(encoded,{shortcuts:["SaveToSuccessDaily","SaveToInvestment"]});
+else sendToShortcuts(encoded);
+}
+
+function logPomodoro(){
+const note=buildEntry('25mins');
+sendToShortcuts(encodeURIComponent(note));
+goHome();
+}
+
+function logPomodoroReset(){
+const note=buildEntry('Pomodoro reset');
+sendToShortcuts(encodeURIComponent(note));
+goHome();
+}
+
+function saveHealth(){
+const hours=parseInt((document.getElementById('sleepHours').value||'').trim(),10);
+const onBed=(document.getElementById('onBedTime').value||'').trim();
+const energy=parseInt(document.getElementById('energy').value,10);
+const notes=(document.getElementById('healthNotes').value||'').trim();
+if(isNaN(hours)||hours<4||hours>12){alert('Please select sleeping hours between 4 and 12.');return}
+if(!onBed){alert('Please enter on-bed time.');return}
+if(isNaN(energy)||energy<1||energy>10){alert('Energy must be 1–10.');return}
+const pieces=[`sleep=${hours}h`,`onBed=${toHumanTime(onBed)}`,`energy=${energy}/10`];
+if(notes)pieces.push(`notes=${sanitizeInline(notes)}`);
+selectedCategory='Health';selectedSubCategory='';
+sendToShortcuts(encodeURIComponent(buildEntry(pieces.join(' | '))),{shortcuts:["SaveToSuccessDaily"]});
+}
+
+function logIceWater(){
+selectedCategory='Health';selectedSubCategory='';
+sendToShortcuts(encodeURIComponent(buildEntry('Ice water wash face')),{shortcuts:["SaveToSuccessDaily","SaveToFacial photo record"]});
+goHome();
+}
+
+function logColdShower(){
+selectedCategory='Health';selectedSubCategory='';
+sendToShortcuts(encodeURIComponent(buildEntry('Cold shower')),{shortcuts:["SaveToSuccessDaily"]});
+goHome();
+}
+
+function saveTonight(state){
+const picked=Array.from(document.querySelectorAll('#todoCards .card')).filter(card=>card.querySelector('input').checked).map(card=>card.querySelector('.text').innerText.trim());
+if(picked.length===0){alert('請至少選擇一項或新增項目');return}
+selectedCategory='TonightToDoList';selectedSubCategory='';
+sendToShortcuts(encodeURIComponent(buildEntry(`Tonight: ${picked.join(', ')} | status=${state}`)));
+}
+
+function toHumanTime(hhmm){
+const [hStr,mStr]=hhmm.split(':');let h=parseInt(hStr,10);
+const ampm=h>=12?'pm':'am';h=h%12||12;return `${h}:${mStr}${ampm}`;
+}
+
+function sanitizeInline(s){return s.replace(/\n+/g,' ').replace(/\]/g,')')}
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+function gotoDopamineAction(){hidePages();document.getElementById('pageDopa').classList.add('active')}
+
+function chooseDopa(token,label){
+selectedDopaToken=token;selectedDopaLabel=label;
+hidePages();
+document.getElementById('dopaFormTitle').textContent=`Dopamine Action — ${selectedDopaLabel}`;
+document.getElementById('dopaFormTime').textContent=`${fmtDate()} ${fmtTime()}`;
+document.getElementById('dopaEvent').value='';
+document.getElementById('pageDopaForm').classList.add('active');
+}
+
+function saveDopaEvent(){
+const eventText=(document.getElementById('dopaEvent').value||'').trim();
+if(!eventText){alert('請輸入事件內容');return}
+selectedCategory='MentalHealth';selectedSubCategory='DopamineAction';
+const text=`${sanitizeInline(eventText)} ${selectedDopaToken}`;
+sendToShortcuts(encodeURIComponent(buildEntry(text)));
+selectedDopaToken='';selectedDopaLabel='';
+goHome();
 }
 </script>
-
 </body>
 </html>
